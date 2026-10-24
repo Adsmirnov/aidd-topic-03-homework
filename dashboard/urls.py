@@ -19,5 +19,6 @@ urlpatterns = [
     path("monitoring/", include("dashboard.monitoring_urls")),
     path("portfolios/", include("dashboard.portfolio_urls")),
     path("history/", include("dashboard.history_urls")),
+    path("strategies/", include("dashboard.strategy_urls")),
     path("api/", include("dashboard.api.urls")),
 ]

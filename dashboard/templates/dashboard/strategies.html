@@ -1,0 +1,58 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}
+<title>Симулятор стратегий</title>
+{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Симулятор стратегий</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-info" role="status">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<section class="mb-5">
+    <h2 class="h5">Новая стратегия</h2>
+    <form method="post" action="{% url 'dashboard:strategies:create' %}" class="form-inline">
+        {% csrf_token %}
+        {{ form.name }}
+        {{ form.share }}
+        {{ form.buy_price }}
+        {{ form.sell_price }}
+        {{ form.quantity }}
+        <button class="btn btn-primary ml-2" type="submit">Запустить</button>
+    </form>
+    {% if form.non_field_errors %}<div class="text-danger">{{ form.non_field_errors }}</div>{% endif %}
+</section>
+
+{% for strategy in strategies %}
+<section class="mb-5 border-bottom pb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="h5 mb-0">{{ strategy.name }} · {{ strategy.share.ticker }}</h2>
+        <form method="post" action="{% url 'dashboard:strategies:toggle' strategy.id %}">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary" type="submit">{% if strategy.is_active %}Приостановить{% else %}Возобновить{% endif %}</button>
+        </form>
+    </div>
+    <p class="mt-2">Покупка ≤ {{ strategy.buy_price }} · Продажа ≥ {{ strategy.sell_price }} · Количество {{ strategy.quantity }}</p>
+    <p>Состояние: {% if strategy.is_active %}активна{% else %}приостановлена{% endif %} · Открытая позиция: {{ strategy.current_quantity }} · Средняя цена: {{ strategy.average_buy_price }} · Реализованный P/L: {{ strategy.realized_pnl }}</p>
+    <h3 class="h6">Журнал сделок</h3>
+    <div class="table-responsive">
+        <table class="table table-sm">
+            <thead><tr><th>Рыночное время</th><th>Операция</th><th>Количество</th><th>Цена</th><th>Реализованный P/L</th></tr></thead>
+            <tbody>
+            {% for trade in strategy.trades.all %}
+                <tr><td>{{ trade.market_at }}</td><td>{{ trade.get_side_display }}</td><td>{{ trade.quantity }}</td><td>{{ trade.market_price }}</td><td>{{ trade.realized_pnl }}</td></tr>
+            {% empty %}
+                <tr><td colspan="5" class="text-muted">Сделок пока нет.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% empty %}
+<p class="text-muted">Создайте стратегию для виртуального моделирования сделок.</p>
+{% endfor %}
+{% endblock %}

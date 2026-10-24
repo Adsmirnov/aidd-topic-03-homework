@@ -1,6 +1,13 @@
 from django import forms
 
-from .models import Portfolio, PortfolioTransaction, PriceAlert, Share, Watchlist
+from .models import (
+    InvestmentStrategy,
+    Portfolio,
+    PortfolioTransaction,
+    PriceAlert,
+    Share,
+    Watchlist,
+)
 
 
 class ShareModelForm(forms.ModelForm):
@@ -83,4 +90,24 @@ class PriceHistoryFilterForm(forms.Form):
         end_date = cleaned_data.get("end_date")
         if start_date and end_date and start_date > end_date:
             raise forms.ValidationError("Начало периода должно быть не позже его конца.")
+        return cleaned_data
+
+
+class InvestmentStrategyForm(forms.ModelForm):
+    share = forms.ModelChoiceField(queryset=Share.objects.none())
+
+    class Meta:
+        model = InvestmentStrategy
+        fields = ("name", "share", "buy_price", "sell_price", "quantity")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["share"].queryset = Share.objects.order_by("name")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        buy_price = cleaned_data.get("buy_price")
+        sell_price = cleaned_data.get("sell_price")
+        if buy_price and sell_price and sell_price <= buy_price:
+            raise forms.ValidationError("Цена продажи должна быть выше цены покупки.")
         return cleaned_data

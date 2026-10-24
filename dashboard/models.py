@@ -173,3 +173,56 @@ class PriceHistory(models.Model):
             models.CheckConstraint(condition=models.Q(price__gt=0), name="price_history_positive_price"),
         ]
         ordering = ("observed_at",)
+
+
+class InvestmentStrategy(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="investment_strategies"
+    )
+    share = models.ForeignKey(
+        Share, on_delete=models.CASCADE, related_name="investment_strategies"
+    )
+    name = models.CharField(max_length=100)
+    buy_price = models.DecimalField(max_digits=20, decimal_places=8)
+    sell_price = models.DecimalField(max_digits=20, decimal_places=8)
+    quantity = models.DecimalField(max_digits=20, decimal_places=8)
+    current_quantity = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    average_buy_price = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    realized_pnl = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    is_active = models.BooleanField(default=True)
+    last_processed_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(buy_price__gt=0), name="strategy_positive_buy_price"),
+            models.CheckConstraint(condition=models.Q(sell_price__gt=models.F("buy_price")), name="strategy_sell_above_buy"),
+            models.CheckConstraint(condition=models.Q(quantity__gt=0), name="strategy_positive_quantity"),
+            models.CheckConstraint(condition=models.Q(current_quantity__gte=0), name="strategy_nonnegative_position"),
+        ]
+        ordering = ("name",)
+
+
+class StrategyTrade(models.Model):
+    class Side(models.TextChoices):
+        BUY = "buy", "Покупка"
+        SELL = "sell", "Продажа"
+
+    strategy = models.ForeignKey(
+        InvestmentStrategy, on_delete=models.CASCADE, related_name="trades"
+    )
+    side = models.CharField(max_length=4, choices=Side.choices)
+    market_price = models.DecimalField(max_digits=20, decimal_places=8)
+    quantity = models.DecimalField(max_digits=20, decimal_places=8)
+    realized_pnl = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    market_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("strategy", "side", "market_at"),
+                name="uniq_strategy_trade_per_market_tick",
+            )
+        ]
+        ordering = ("-market_at",)
