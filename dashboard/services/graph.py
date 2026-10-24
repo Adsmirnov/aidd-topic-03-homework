@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
 
-from .tinkoff_api import post, quotation_to_float
+from .tinkoff_api import parse_api_datetime, post, quotation_to_float
 
 
 def get_graph(share):
@@ -19,8 +19,7 @@ def get_graph(share):
     )
     candles = response.get("candles", [])
     x_data = [
-        datetime.fromisoformat(candle["time"].replace("Z", "+00:00")).date()
-        for candle in candles
+        parse_api_datetime(candle["time"]).date() for candle in candles
     ]
     y_data = [quotation_to_float(candle["close"]) for candle in candles]
 
@@ -36,7 +35,5 @@ def get_graph(share):
             )
         ],
         output_type="div",
-        show_link=False,
-        link_text="",
     )
     return plot_div
