@@ -1,0 +1,93 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}
+<title>Мониторинг акций</title>
+{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Мониторинг акций</h1>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-info" role="status">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<section class="mb-4">
+    <h2 class="h5">Новый список</h2>
+    <form method="post" action="{% url 'dashboard:monitoring:create-watchlist' %}" class="form-inline">
+        {% csrf_token %}
+        {{ watchlist_form.name }}
+        <button class="btn btn-primary ml-2" type="submit">Создать список</button>
+    </form>
+</section>
+
+{% for watchlist in watchlists %}
+<section class="mb-5">
+    <h2 class="h5">{{ watchlist.name }}</h2>
+    <form method="post" action="{% url 'dashboard:monitoring:add-entry' watchlist.id %}" class="form-inline mb-3">
+        {% csrf_token %}
+        {{ entry_form.share }}
+        <button class="btn btn-outline-primary ml-2" type="submit">Добавить акцию</button>
+    </form>
+    {% if watchlist.entries.all %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr><th>Тикер</th><th>Цена</th><th>Целевые уровни</th><th>Действия</th></tr>
+            </thead>
+            <tbody>
+            {% for entry in watchlist.entries.all %}
+                <tr>
+                    <td>{{ entry.share.ticker }} · {{ entry.share.name }}</td>
+                    <td>{{ entry.share.last_price|default:"—" }} {{ entry.share.currency }}</td>
+                    <td>
+                        {% for alert in entry.alerts.all %}
+                            <div>{{ alert.get_direction_display }} {{ alert.target_price }}{% if not alert.is_active %} · сработал{% endif %}</div>
+                        {% empty %}
+                            <span class="text-muted">Не заданы</span>
+                        {% endfor %}
+                        <form method="post" action="{% url 'dashboard:monitoring:add-alert' entry.id %}" class="form-inline mt-2">
+                            {% csrf_token %}
+                            {{ alert_form.direction }}
+                            {{ alert_form.target_price }}
+                            <button class="btn btn-sm btn-outline-secondary ml-2" type="submit">Задать</button>
+                        </form>
+                    </td>
+                    <td>
+                        <form method="post" action="{% url 'dashboard:monitoring:delete-entry' entry.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Убрать</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">В списке пока нет акций.</p>
+    {% endif %}
+</section>
+{% empty %}
+<p class="text-muted">Создайте список наблюдения.</p>
+{% endfor %}
+
+<section class="mt-5">
+    <h2 class="h5">Уведомления</h2>
+    {% for notification in notifications %}
+        <div class="border-bottom py-2">
+            <span>{{ notification.alert.entry.share.ticker }}: {{ notification.alert.get_direction_display }} {{ notification.alert.target_price }} (цена {{ notification.observed_price }})</span>
+            <small class="text-muted">{{ notification.created_at }}</small>
+            {% if not notification.read_at %}
+            <form method="post" action="{% url 'dashboard:monitoring:read-notification' notification.id %}" class="d-inline">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-link" type="submit">Прочитано</button>
+            </form>
+            {% endif %}
+        </div>
+    {% empty %}
+        <p class="text-muted">Уведомлений пока нет.</p>
+    {% endfor %}
+</section>
+{% endblock %}
