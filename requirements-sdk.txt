@@ -1,0 +1,4 @@
+# Tinkoff Invest SDK. It was removed from PyPI together with its placeholder
+# dependency "tinkoff", so it is installed from the official GitHub mirror
+# without dependencies:  pip install --no-deps -r requirements-sdk.txt
+tinkoff-investments @ git+https://github.com/RussianInvestments/invest-python@0.2.0-beta117
