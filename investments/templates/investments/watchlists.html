@@ -1,0 +1,23 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>Списки наблюдения</title>{% endblock %}
+
+{% block content %}
+<h4>Списки наблюдения</h4>
+
+<form method="post" class="row g-2 mb-4">
+    {% csrf_token %}
+    <div class="col-auto"><input name="name" class="form-control" placeholder="Название нового списка" required maxlength="100"></div>
+    <div class="col-auto"><button class="btn btn-primary">Создать</button></div>
+    {{ form.name.errors }}
+</form>
+
+{% for watchlist in watchlists %}
+    <p>
+        <a href="{% url 'investments:watchlist' watchlist.pk %}"><b>{{ watchlist.name }}</b></a>
+        — {% for item in watchlist.items.all %}{{ item.share.ticker }}{% if not forloop.last %}, {% endif %}{% empty %}пусто{% endfor %}
+    </p>
+{% empty %}
+    <p>Списков пока нет.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>{{ watchlist.name }}</title>{% endblock %}
+
+{% block content %}
+<p><a href="{% url 'investments:watchlists' %}">← все списки</a></p>
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <h4 class="me-3 mb-0">{{ watchlist.name }}</h4>
+    <form method="post" action="{% url 'investments:watchlist_rename' watchlist.pk %}" class="d-flex gap-1">
+        {% csrf_token %}
+        <input name="name" value="{{ watchlist.name }}" class="form-control form-control-sm" required maxlength="100">
+        <button class="btn btn-sm btn-outline-secondary">Переименовать</button>
+    </form>
+    <form method="post" action="{% url 'investments:watchlist_delete' watchlist.pk %}" onsubmit="return confirm('Удалить список?')">
+        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Удалить список</button>
+    </form>
+</div>
+
+<form method="post" class="row g-2 mb-4">
+    {% csrf_token %}
+    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер, например SBER" required maxlength="10" value="{{ share_form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><button class="btn btn-primary">Добавить акцию</button></div>
+    <div class="col-12 text-danger">{{ share_form.ticker.errors }}</div>
+</form>
+
+{% for item in items %}
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="d-flex justify-content-between">
+            <h5>
+                <a href="{% url 'dashboard:detail' item.share.id %}">{{ item.share.ticker }}</a>
+                <small class="text-muted">{{ item.share.name }}</small>
+            </h5>
+            <form method="post" action="{% url 'investments:item_delete' item.pk %}">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Убрать из списка</button>
+            </form>
+        </div>
+        <p>Текущая цена: {{ item.share.last_price|default_if_none:"нет данных" }} {{ item.share.currency }}</p>
+
+        <table class="table table-sm w-auto">
+            {% for alert in item.alerts.all %}
+            <tr>
+                <td>{{ alert.get_condition_display }} {{ alert.target_price.normalize }}</td>
+                <td>
+                    {% if alert.triggered_at %}
+                        <span class="badge bg-success">сработал {{ alert.triggered_at|date:"d.m.Y H:i" }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">отслеживается</span>
+                    {% endif %}
+                </td>
+                <td class="d-flex gap-1">
+                    {% if alert.triggered_at %}
+                    <form method="post" action="{% url 'investments:alert_rearm' alert.pk %}">
+                        {% csrf_token %}<button class="btn btn-sm btn-outline-primary">Включить снова</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'investments:alert_delete' alert.pk %}">
+                        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Удалить</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td class="text-muted">Ценовых уровней нет</td></tr>
+            {% endfor %}
+        </table>
+
+        <form method="post" action="{% url 'investments:alert_create' item.pk %}" class="row g-2">
+            {% csrf_token %}
+            <div class="col-auto">
+                <select name="condition" class="form-select form-select-sm">
+                    {% for value, label in alert_form.fields.condition.choices %}{% if value %}<option value="{{ value }}">{{ label }}</option>{% endif %}{% endfor %}
+                </select>
+            </div>
+            <div class="col-auto"><input name="target_price" type="number" step="any" min="0.000001" class="form-control form-control-sm" placeholder="Цена" required></div>
+            <div class="col-auto"><button class="btn btn-sm btn-primary">Добавить уровень</button></div>
+        </form>
+    </div>
+</div>
+{% empty %}
+<p>В списке пока нет акций.</p>
+{% endfor %}
+{% endblock %}

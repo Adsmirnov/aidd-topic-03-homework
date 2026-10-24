@@ -13,6 +13,11 @@ def to_decimal(value):
     return Decimal(str(value))
 
 
+def fmt(value):
+    """Decimal without trailing zeros and without exponent: 100.000000 → '100'."""
+    return format(value.normalize(), "f")
+
+
 def record_prices(shares, recorded_at):
     """Save the current price of each share unless it equals the last saved one."""
     last_saved = dict(

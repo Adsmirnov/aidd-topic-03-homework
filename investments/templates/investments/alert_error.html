@@ -1,0 +1,9 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>Ошибка</title>{% endblock %}
+
+{% block content %}
+<h5>Не удалось добавить уровень для {{ item.share.ticker }}</h5>
+<div class="text-danger">{{ form.errors }}</div>
+<p><a href="{% url 'investments:watchlist' item.watchlist_id %}">← назад к списку</a></p>
+{% endblock %}

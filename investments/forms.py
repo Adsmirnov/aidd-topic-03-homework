@@ -1,5 +1,7 @@
 from django import forms
 
+from dashboard.models import Share
+from investments.models import PriceAlert
 from investments.services.history import DEFAULT_PERIOD, PERIODS
 
 DATE_INPUT = forms.DateInput(attrs={"type": "date"})
@@ -21,3 +23,30 @@ class HistoryPeriodForm(forms.Form):
         if date_from and date_to and date_from > date_to:
             raise forms.ValidationError("Дата начала позже даты окончания")
         return cleaned_data
+
+
+class NameForm(forms.Form):
+    name = forms.CharField(label="Название", max_length=100)
+
+
+class AddShareForm(forms.Form):
+    ticker = forms.CharField(label="Тикер", max_length=10)
+
+    def __init__(self, *args, watchlist=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.watchlist = watchlist
+
+    def clean_ticker(self):
+        ticker = self.cleaned_data["ticker"].strip()
+        share = Share.objects.filter(ticker__iexact=ticker).first()
+        if share is None:
+            raise forms.ValidationError(f"Акции с тикером {ticker} нет в справочнике")
+        if self.watchlist.items.filter(share=share).exists():
+            raise forms.ValidationError(f"{share.ticker} уже есть в списке")
+        return share
+
+
+class PriceAlertForm(forms.ModelForm):
+    class Meta:
+        model = PriceAlert
+        fields = ["condition", "target_price"]

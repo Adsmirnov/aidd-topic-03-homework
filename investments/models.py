@@ -25,3 +25,94 @@ class SharePrice(models.Model):
 
     def __str__(self):
         return f"{self.share.ticker} {self.price} {self.recorded_at:%Y-%m-%d %H:%M}"
+
+
+class Watchlist(models.Model):
+    """Персональный список наблюдения"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="watchlists"
+    )
+    name = models.CharField(max_length=100, verbose_name="Название")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Список наблюдения"
+        verbose_name_plural = "Списки наблюдения"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class WatchlistItem(models.Model):
+    """Акция в списке наблюдения"""
+
+    watchlist = models.ForeignKey(Watchlist, on_delete=models.CASCADE, related_name="items")
+    share = models.ForeignKey(Share, on_delete=models.CASCADE, related_name="+")
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["share__ticker"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["watchlist", "share"], name="unique_share_in_watchlist"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.watchlist}: {self.share.ticker}"
+
+
+class PriceAlert(models.Model):
+    """Целевой ценовой уровень для акции из списка наблюдения"""
+
+    ABOVE = "above"
+    BELOW = "below"
+    CONDITIONS = [(ABOVE, "цена ≥ уровня"), (BELOW, "цена ≤ уровня")]
+
+    item = models.ForeignKey(WatchlistItem, on_delete=models.CASCADE, related_name="alerts")
+    condition = models.CharField(max_length=5, choices=CONDITIONS, verbose_name="Условие")
+    target_price = models.DecimalField(
+        **PRICE_DIGITS, validators=POSITIVE, verbose_name="Целевая цена"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Set when the condition is met; a triggered alert does not fire again
+    triggered_at = models.DateTimeField(null=True, blank=True, verbose_name="Сработал")
+
+    class Meta:
+        ordering = ["target_price"]
+
+    def __str__(self):
+        return f"{self.item.share.ticker} {self.get_condition_display()} {self.target_price}"
+
+    def is_met(self, price):
+        if self.condition == self.ABOVE:
+            return price >= self.target_price
+        return price <= self.target_price
+
+
+class Notification(models.Model):
+    """Уведомление о срабатывании ценового уровня"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications"
+    )
+    alert = models.ForeignKey(PriceAlert, on_delete=models.CASCADE, related_name="notifications")
+    share = models.ForeignKey(Share, on_delete=models.CASCADE, related_name="+")
+    message = models.CharField(max_length=255)
+    price = models.DecimalField(**PRICE_DIGITS, verbose_name="Цена")
+    triggered_at = models.DateTimeField(verbose_name="Время")
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-triggered_at", "-id"]
+        constraints = [
+            # One notification per triggering of an alert, even with parallel workers
+            models.UniqueConstraint(
+                fields=["alert", "triggered_at"], name="one_notification_per_trigger"
+            )
+        ]
+
+    def __str__(self):
+        return self.message

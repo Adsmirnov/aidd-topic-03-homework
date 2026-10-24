@@ -1,11 +1,11 @@
 import logging
 
-from . import history
+from . import alerts, history
 
 logger = logging.getLogger("main")
 
 # Steps run after every price update, in order; a failing step does not stop the rest
-PRICE_UPDATE_STEPS = [history.record_prices]
+PRICE_UPDATE_STEPS = [history.record_prices, alerts.check_alerts]
 
 
 def on_prices_updated(shares, updated_at):

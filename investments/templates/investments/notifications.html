@@ -1,0 +1,25 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>Уведомления</title>{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-3 align-items-center mb-3">
+    <h4 class="mb-0">Уведомления</h4>
+    {% if unread_notifications %}
+    <form method="post" action="{% url 'investments:notifications_read' %}">
+        {% csrf_token %}<button class="btn btn-sm btn-outline-secondary">Отметить все прочитанными</button>
+    </form>
+    {% endif %}
+</div>
+
+<table class="table table-sm">
+    {% for notification in notifications %}
+    <tr class="{% if not notification.read_at %}fw-bold{% endif %}">
+        <td>{{ notification.triggered_at|date:"d.m.Y H:i:s" }}</td>
+        <td><a href="{% url 'dashboard:detail' notification.share_id %}">{{ notification.message }}</a></td>
+    </tr>
+    {% empty %}
+    <tr><td>Уведомлений нет.</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}
