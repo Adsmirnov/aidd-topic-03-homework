@@ -31,7 +31,7 @@ celery -A config worker -l info -P solo   # на Windows нужен -P solo
 celery -A config beat -l info
 ```
 
-Tinkoff Invest API доступен только с российских IP-адресов: при включённом VPN загрузка акций, цены и графики работать не будут.
+Без токена и доступа к T-Invest API приложение можно посмотреть на демо-данных (цены выдуманы): `python manage.py loaddata demo_shares`. Ограничения подключения к API описаны в `ANALYSIS.md`, раздел 18.
 
 ## Тесты
 

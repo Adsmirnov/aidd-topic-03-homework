@@ -141,6 +141,8 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 TINKOFF_TOKEN = os.getenv("TINKOFF_TOKEN", "")
+# Current T-Invest API address; invest-public-api.tinkoff.ru is the legacy one
+TINKOFF_API_TARGET = os.getenv("TINKOFF_API_TARGET", "invest-public-api.tbank.ru:443")
 
 """Celery Configuration Options"""
 CELERY_TIMEZONE = "Europe/Moscow"

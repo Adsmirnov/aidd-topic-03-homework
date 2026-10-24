@@ -1,0 +1,44 @@
+[
+  {
+    "model": "dashboard.share",
+    "pk": 9001,
+    "fields": {
+      "figi": "BBG004730N88",
+      "isin": "RU0009029540",
+      "name": "Сбер Банк (демо-данные)",
+      "ticker": "SBER",
+      "currency": "rub",
+      "uid": "demo-sber",
+      "last_price": 301.45,
+      "is_trend_high": true
+    }
+  },
+  {
+    "model": "dashboard.share",
+    "pk": 9002,
+    "fields": {
+      "figi": "BBG004731032",
+      "isin": "RU0009024277",
+      "name": "ЛУКОЙЛ (демо-данные)",
+      "ticker": "LKOH",
+      "currency": "rub",
+      "uid": "demo-lkoh",
+      "last_price": 6820.5,
+      "is_trend_high": false
+    }
+  },
+  {
+    "model": "dashboard.share",
+    "pk": 9003,
+    "fields": {
+      "figi": "BBG004730ZJ9",
+      "isin": "RU000A0JP5V6",
+      "name": "Банк ВТБ (демо-данные)",
+      "ticker": "VTBR",
+      "currency": "rub",
+      "uid": "demo-vtbr",
+      "last_price": null,
+      "is_trend_high": null
+    }
+  }
+]

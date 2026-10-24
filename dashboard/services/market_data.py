@@ -1,8 +1,6 @@
 import logging
 
-from tinkoff.invest.utils import quotation_to_decimal
-
-from .tinkoff import tinkoff_client
+from .tinkoff import quotation_to_decimal, tinkoff_client
 
 logger = logging.getLogger("main")
 

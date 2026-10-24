@@ -3,10 +3,7 @@ from datetime import timedelta
 
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
-from tinkoff.invest import CandleInterval
-from tinkoff.invest.utils import now, quotation_to_decimal
-
-from .tinkoff import tinkoff_client
+from .tinkoff import CandleInterval, now, quotation_to_decimal, tinkoff_client
 
 logger = logging.getLogger("main")
 
