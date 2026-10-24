@@ -1,0 +1,60 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>История цен {{ share.ticker }}</title>{% endblock %}
+
+{% block content %}
+<h4>История цен: {{ share.name }} ({{ share.ticker }})</h4>
+<p><a href="{% url 'dashboard:detail' share.id %}">← карточка акции</a></p>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+        <label class="form-label">{{ form.period.label }}</label>
+        <select name="period" class="form-select">
+            {% for value, label in form.fields.period.choices %}
+                <option value="{{ value }}" {% if form.period.value == value or not form.period.value and value == form.fields.period.initial %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-auto">
+        <label class="form-label">{{ form.date_from.label }}</label>
+        <input type="date" name="date_from" value="{{ form.date_from.value|default_if_none:'' }}" class="form-control">
+    </div>
+    <div class="col-auto">
+        <label class="form-label">{{ form.date_to.label }}</label>
+        <input type="date" name="date_to" value="{{ form.date_to.value|default_if_none:'' }}" class="form-control">
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" type="submit">Показать</button>
+    </div>
+    <div class="col-12 form-text">Если заданы даты, используется интервал дат, а не период.</div>
+    {% if form.errors %}<div class="col-12 text-danger">{{ form.non_field_errors }}{% for f in form %}{{ f.errors }}{% endfor %}</div>{% endif %}
+</form>
+
+{% if stats %}
+<table class="table table-sm w-auto">
+    <tr><th>Цена на начало периода</th><td>{{ stats.start_price.normalize }} {{ share.currency }}</td></tr>
+    <tr><th>Цена на конец периода</th><td>{{ stats.end_price.normalize }} {{ share.currency }}</td></tr>
+    <tr><th>Изменение</th>
+        <td class="{% if stats.change > 0 %}text-success{% elif stats.change < 0 %}text-danger{% endif %}">
+            {% if stats.change > 0 %}+{% endif %}{{ stats.change.normalize }} {{ share.currency }}
+            ({% if stats.change_percent > 0 %}+{% endif %}{{ stats.change_percent|default_if_none:"—" }}%)
+        </td></tr>
+    <tr><th>Минимум / максимум</th><td>{{ stats.min_price.normalize }} / {{ stats.max_price.normalize }}</td></tr>
+    <tr><th>Записей за период</th><td>{{ stats.count }}</td></tr>
+</table>
+
+{{ chart|safe }}
+
+<h5 class="mt-4">Записи</h5>
+<table class="table table-striped table-sm w-auto">
+    <thead><tr><th>Время</th><th>Цена</th></tr></thead>
+    <tbody>
+    {% for record in records %}
+        <tr><td>{{ record.recorded_at|date:"d.m.Y H:i:s" }}</td><td>{{ record.price.normalize }}</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>За выбранный период сохранённых цен нет.</p>
+{% endif %}
+{% endblock %}

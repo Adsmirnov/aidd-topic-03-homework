@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "dashboard",
     "user",
+    "investments",
     "rest_framework",
     "django_filters",
 ]

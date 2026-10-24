@@ -10,7 +10,8 @@
     <div class="col3">
         Инструмент: {{ share.name }} <br>
         Текущая цена: {{ share.last_price }} {{ share.currency }} <br>
-        Время последнего обновления: {{ share.updated_at }}
+        Время последнего обновления: {{ share.updated_at }} <br>
+        <a href="{% url 'investments:history' share.id %}">История цен (сохранённые данные)</a>
     </div>
     <div class="col3"></div>
     </div>

@@ -5,6 +5,7 @@ from django.utils import timezone
 from config.celery import app
 from dashboard.models import Share
 from dashboard.services.market_data import get_last_prices
+from investments.services import on_prices_updated
 
 logger = logging.getLogger("main")
 
@@ -35,3 +36,5 @@ def update_last_price():
         changed.append(share)
 
     Share.objects.bulk_update(changed, ["last_price", "is_trend_high", "updated_at"])
+    # Price history, watchlist alerts and strategies react to the new prices
+    on_prices_updated(changed, updated_at)
