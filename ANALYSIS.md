@@ -264,3 +264,85 @@ README.md               — команды запуска
 * **Н-2.** В справочник через форму можно вручную вписать «текущую цену» и признак роста, которые следующий запуск задачи перезапишет.
 * **Н-3.** Гость, открывший `/create`, перенаправляется на главную, а не на вход — неочевидно, но это фактическое поведение (ФТ-20).
 * **Н-4.** Тест `test_share_detail_invalid` запрашивает жёстко заданный `id=2` — проходит только благодаря тому, что последовательности Postgres не откатываются между тестами.
+
+---
+
+# Технический аудит и модернизация (задание 3)
+
+## 12. Устаревшие зависимости и что сделано
+
+| Было | Стало | Причина |
+|---|---|---|
+| Python 3.8–3.11 (неявно) | Python 3.14.3 | актуальная версия |
+| Django 4.1.7 (поддержка закончилась в 2023) | Django 5.2.18 LTS | LTS до апреля 2028 |
+| djangorestframework 3.14 | 3.18.3 | поддержка Django 5.2 |
+| django-filter 22.1 | 26.2 | поддержка Django 5.2 |
+| django-crispy-forms 2.0 + crispy-bootstrap3 | 2.7 + crispy-bootstrap5 | шаблоны совпадают с подключённым Bootstrap 5 (Д-3) |
+| celery 5.2.7, redis 4.5 | celery[redis] 5.6.3 | поддержка Python 3.14 |
+| psycopg2-binary 2.9.5 | psycopg[binary] 3.3.6 | рекомендуемый драйвер для Django 5 |
+| plotly 5.13 | plotly 7.1.0 | актуальная версия; в 7.x удалены `show_link`/`link_text` — код исправлен |
+| tinkoff-investments 0.2.0b50 (PyPI) | 0.2.0b117 с GitHub `RussianInvestments/invest-python` | пакет и его зависимость `tinkoff` удалены с PyPI (Д-2); SDK ставится `--no-deps` из `requirements-sdk.txt` |
+| protobuf 3.20 | protobuf 5.29.6 | protobuf 4.x не работает на Python 3.14 (`TypeError: Metaclasses with custom tp_new are not supported`); 6.x уже без `SymbolDatabase.GetPrototype`, который использует SDK |
+| black, isort, pydantic, tenacity и ~20 транзитивных пакетов | убраны | не используются кодом или ставятся автоматически |
+| образы `postgres`, `redis` без версии | `postgres:17`, `redis:8` + volume + healthcheck | воспроизводимость, сохранность данных (Д-4) |
+
+Совместимость проверена: `manage.py check`, `makemigrations --check` (схема совпадает с миграциями), все исходные тесты проходят на новых версиях до каких-либо изменений кода.
+
+## 13. Конфигурация
+
+* Секреты и параметры окружения вынесены в `.env` (шаблон `.env.example`, `.env` в `.gitignore`): `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `POSTGRES_*`, `CELERY_BROKER_URL`, `TINKOFF_TOKEN`, `PRICE_UPDATE_INTERVAL` (Д-1).
+* Порт PostgreSQL на хосте настраивается (`POSTGRES_PORT`) — у разработчика 5432 был занят локальным Postgres.
+* `config/urls.py`: префикс `user/` (Д-5) — адреса `/user/login/`, `/user/registration/`, `/user/logout/`.
+* Лог-файл пишется в корень проекта в UTF-8 (раньше — в текущий каталог в кодировке ОС).
+
+## 14. Исправленные дефекты
+
+Для каждого дефекта сначала написан тест, воспроизводящий его на исходном коде (14 тестов упали), затем код исправлен (все прошли). Тесты: `dashboard/test_defects.py`, `user/tests.py`.
+
+| Дефект | Исправление | Файлы |
+|---|---|---|
+| Д-1, Д-2, Д-3, Д-4, Д-5 | см. разделы 12–13 | `config/`, `requirements*.txt`, `docker-compose.yml` |
+| Д-6 цена без дробной части | `quotation_to_decimal()` для цены и свечей | `services/market_data.py`, `services/graph.py` |
+| Д-7 `updated_at` не обновлялся | время задаётся явно, сохранение через `bulk_update` | `tasks.py` |
+| Д-8 запрос на каждую акцию | один запрос `get_last_prices` на пачку до 1000 FIGI; интервал настраивается (`PRICE_UPDATE_INTERVAL`, по умолчанию 10 с, как было) | `services/market_data.py`, `tasks.py`, `config/celery.py` |
+| Д-9 падение `add_shares` при переименовании | `update_or_create` по FIGI | `add_shares.py` |
+| Д-10 500 при создании второй акции через API | `uid` стал необязательным (`NULL` не нарушает уникальность), миграция `0008` | `models.py` |
+| Д-11 500 на несуществующей акции | `DetailView` → 404 | `views.py` |
+| Д-12 500 при недоступном T-Invest API | ошибка логируется, страница показывает «График недоступен» | `services/graph.py`, `detail.html` |
+| Д-13 500 на некорректном regex | 400 с сообщением | `api/v1/views.py` |
+| Д-14 API открыт на запись | `IsAuthenticatedOrReadOnly`: читать могут все, менять — вошедшие (как в HTML) | `api/v1/views.py` |
+| Д-15 регистр email | email хранится в нижнем регистре, проверка занятости без учёта регистра | `user/forms.py` |
+| Д-16 500 при некорректном email | валидация полей, вывод всех ошибок формы | `user/forms.py`, `user/views.py` |
+| Д-17 500 при неполном POST входа | вход через `form.is_valid()` | `user/forms.py`, `user/views.py` |
+| Д-18 пароли без проверки | `validate_password()` при регистрации | `user/forms.py` |
+| Plotly 7: `TypeError: plot() got an unexpected keyword argument 'show_link'` (найдено тестом после обновления) | аргументы убраны | `services/graph.py` |
+
+Не менялось (фактическое поведение, см. Д-19, Н-1…Н-3): права любого вошедшего на изменение справочника, правило «равная цена = рост», ручной ввод цены в форме, редирект гостя на главную.
+
+## 15. Рефакторинг (без изменения поведения)
+
+* Клиент T-Invest API создаётся в одном месте — `dashboard/services/tinkoff.py`; модули не импортируют имена из `config.settings` напрямую (используется `django.conf.settings`), у каждого модуля свой `logging.getLogger("main")`.
+* `ShareDetailView` — стандартный `DetailView`; у создания и редактирования общий миксин вместо дублирования атрибутов.
+* Формы пользователей: общие фабрики полей вместо шести копий виджетов; проверка входа — метод `AuthForm.get_user()`; в шаблоны передаются экземпляры форм, а не классы (раньше работало случайно: шаблонизатор Django вызывает вызываемые объекты).
+* Из базового шаблона убраны неиспользуемые jQuery, Popper, Font Awesome, Moment.js, Tempus Dominus и устаревший `plotly-latest` (график подключает нужную версию Plotly сам).
+* Тесты не зависят от жёстко заданных `id` (Н-4).
+
+## 16. Тесты
+
+36 автоматических тестов (`python manage.py test`): 10 исходных (обновлены: изменение через API требует входа), 14 регрессионных на дефекты, 12 на HTML-страницы, регистрацию и вход. Внешний API в тестах заменён моками.
+
+## 17. Запуск и проверка
+
+Запущено: `docker compose up -d` (Postgres 17, Redis 8), `migrate`, `runserver`, `celery worker -P solo`, `celery beat`.
+
+| Проверка | Результат |
+|---|---|
+| `/` список, пагинация, пустой список | 200 ✔ |
+| `/<id>` карточка; `/999` | 200 ✔; 404 ✔ |
+| `/create` гостем | 302 на главную ✔ |
+| `/user/login/`, `/user/registration/` | 200 ✔ |
+| `/api/v1/shares/`, `?ordering=-ticker`, `?search=^Сб`, `?search=(` | 200 ✔, 200 ✔, 200 ✔, 400 ✔ |
+| Celery beat → worker | задача `update_last_price` ставится каждые 10 с и выполняется ✔ |
+| Вызовы T-Invest API (цены, график, `add_shares`) | ❌ см. ниже |
+
+**Ограничение окружения: T-Invest API.** Сервер `invest-public-api.tinkoff.ru` использует сертификат, выпущенный «Russian Trusted Root CA» (Минцифры России). Этого корневого сертификата нет в наборе, встроенном в gRPC, поэтому соединение обрывается: `CERTIFICATE_VERIFY_FAILED: self signed certificate in certificate chain`. Приложение при этом не падает: ошибка записывается в лог, на карточке выводится «График недоступен».
