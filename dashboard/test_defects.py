@@ -51,7 +51,7 @@ class PriceUpdateTests(TestCase):
     def run_task(self, *prices):
         client = MagicMock()
         client.market_data.get_last_prices.return_value = self.last_prices(*prices)
-        with patch("dashboard.services.market_data.Client", fake_client(client)):
+        with patch("dashboard.services.tinkoff.Client", fake_client(client)):
             update_last_price()
         return client
 
@@ -110,7 +110,7 @@ class AddSharesTests(TestCase):
             instruments=list(instruments)
         )
         with patch(
-            "dashboard.management.commands.add_shares.Client", fake_client(client)
+            "dashboard.services.tinkoff.Client", fake_client(client)
         ):
             call_command("add_shares")
 
@@ -180,7 +180,7 @@ class ShareDetailDefectTests(TestCase):
         """Д-12: an API error made the whole page fail."""
         share = make_share(last_price=10.5)
         broken = MagicMock(side_effect=RuntimeError("no network"))
-        with patch("dashboard.services.graph.Client", broken):
+        with patch("dashboard.services.tinkoff.Client", broken):
             response = self.client.get(f"/{share.id}")
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Apple")
@@ -195,6 +195,6 @@ class ShareDetailDefectTests(TestCase):
         )
         client = MagicMock()
         client.get_all_candles.return_value = [candle]
-        with patch("dashboard.services.graph.Client", fake_client(client)):
+        with patch("dashboard.services.tinkoff.Client", fake_client(client)):
             response = self.client.get(f"/{share.id}")
         self.assertContains(response, "0.0345")

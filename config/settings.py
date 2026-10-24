@@ -1,4 +1,3 @@
-import logging
 import os
 from pathlib import Path
 
@@ -71,7 +70,6 @@ LOGGING = {
     },
 }
 
-logger = logging.getLogger("main")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

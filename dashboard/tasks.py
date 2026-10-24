@@ -1,9 +1,12 @@
+import logging
+
 from django.utils import timezone
 
 from config.celery import app
-from config.settings import logger
 from dashboard.models import Share
 from dashboard.services.market_data import get_last_prices
+
+logger = logging.getLogger("main")
 
 
 @app.task

@@ -1,7 +1,10 @@
-from tinkoff.invest import Client
+import logging
+
 from tinkoff.invest.utils import quotation_to_decimal
 
-from config.settings import TINKOFF_TOKEN, logger
+from .tinkoff import tinkoff_client
+
+logger = logging.getLogger("main")
 
 # T-Invest API accepts up to 3000 instruments in one GetLastPrices request
 LAST_PRICES_BATCH_SIZE = 1000
@@ -10,7 +13,7 @@ LAST_PRICES_BATCH_SIZE = 1000
 def get_last_prices(figis):
     """Return {figi: price} for the given FIGIs, requesting them in batches."""
     prices = {}
-    with Client(TINKOFF_TOKEN) as client:
+    with tinkoff_client() as client:
         for start in range(0, len(figis), LAST_PRICES_BATCH_SIZE):
             batch = figis[start : start + LAST_PRICES_BATCH_SIZE]
             resp = client.market_data.get_last_prices(figi=batch)

@@ -5,28 +5,29 @@ from django.core.exceptions import ValidationError
 
 from user.models import User
 
+INPUT_CLASS = "form-control my-3 p-4"
+
+
+def email_field():
+    return forms.EmailField(
+        widget=forms.EmailInput(attrs={"class": INPUT_CLASS, "placeholder": "Email"})
+    )
+
+
+def password_field(placeholder):
+    return forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={"class": INPUT_CLASS, "placeholder": placeholder}
+        )
+    )
+
 
 class RegistrationForm(forms.Form):
     """Форма регистрации пользователей"""
 
-    email = forms.EmailField(
-        required=True,
-        widget=forms.EmailInput(
-            attrs={"class": "form-control my-3 p-4", "placeholder": "Email"}
-        ),
-    )
-    password1 = forms.CharField(
-        required=True,
-        widget=forms.PasswordInput(
-            attrs={"class": "form-control my-3 p-4", "placeholder": "Пароль"}
-        ),
-    )
-    password2 = forms.CharField(
-        required=True,
-        widget=forms.PasswordInput(
-            attrs={"class": "form-control my-3 p-4", "placeholder": "Повторите пароль"}
-        ),
-    )
+    email = email_field()
+    password1 = password_field("Пароль")
+    password2 = password_field("Повторите пароль")
 
     def clean_email(self):
         # Login lowercases the email, so it is stored lowercased as well
@@ -53,22 +54,21 @@ class RegistrationForm(forms.Form):
         email = self.cleaned_data["email"]
         password = self.cleaned_data["password1"]
         User.objects.create_user(email, email, password)
-        user = authenticate(username=email, password=password)
-        return user
+        return authenticate(username=email, password=password)
 
 
 class AuthForm(forms.Form):
     """Форма авторизации пользователей"""
 
-    email = forms.EmailField(
-        required=True,
-        widget=forms.EmailInput(
-            attrs={"class": "form-control my-3 p-4", "placeholder": "Email"}
-        ),
-    )
-    password = forms.CharField(
-        required=True,
-        widget=forms.PasswordInput(
-            attrs={"class": "form-control my-3 p-4", "placeholder": "Пароль"}
-        ),
-    )
+    email = email_field()
+    password = password_field("Пароль")
+
+    def get_user(self, request):
+        """The authenticated user, or None if the form or credentials are invalid."""
+        if not self.is_valid():
+            return None
+        return authenticate(
+            request,
+            username=self.cleaned_data["email"].lower(),
+            password=self.cleaned_data["password"],
+        )

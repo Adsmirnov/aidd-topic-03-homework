@@ -1,19 +1,20 @@
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, View, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
 from .forms import ShareModelForm
 from .models import Share
 from .services.graph import get_graph
-from django.contrib.auth.mixins import UserPassesTestMixin
 
 
 class IsUserAuthenticatedMixin(UserPassesTestMixin):
+    """Only logged in users; guests are sent to the share list."""
+
     def test_func(self):
         return self.request.user.is_authenticated
 
-    @staticmethod
-    def handle_no_permission():
+    def handle_no_permission(self):
         return redirect("dashboard:index")
 
 
@@ -26,37 +27,35 @@ class ShareListView(ListView):
     ordering = ["name"]
 
 
-class ShareDetailView(View):
-    @staticmethod
-    def get(request, pk):
-        share = get_object_or_404(Share, id=pk)
+class ShareDetailView(DetailView):
+    """Карточка акции с графиком"""
 
-        return render(
-            request,
-            "dashboard/detail.html",
-            {"plot_div": get_graph(share), "share": share},
-        )
+    model = Share
+    template_name = "dashboard/detail.html"
 
-
-class ShareCreateView(IsUserAuthenticatedMixin, CreateView):
-    """Добавление инструмента"""
-
-    template_name = "dashboard/create.html"
-    form_class = ShareModelForm
-    success_url = reverse_lazy("dashboard:index")
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["plot_div"] = get_graph(self.object)
+        return context
 
 
-class ShareUpdateView(IsUserAuthenticatedMixin, UpdateView):
-    """Редактирование инструмента"""
-
+class ShareFormMixin(IsUserAuthenticatedMixin):
     model = Share
     template_name = "dashboard/create.html"
     form_class = ShareModelForm
     success_url = reverse_lazy("dashboard:index")
 
 
+class ShareCreateView(ShareFormMixin, CreateView):
+    """Добавление инструмента"""
+
+
+class ShareUpdateView(ShareFormMixin, UpdateView):
+    """Редактирование инструмента"""
+
+
 class ShareDeleteView(IsUserAuthenticatedMixin, DeleteView):
-    """Удаление задачи"""
+    """Удаление инструмента"""
 
     model = Share
     template_name = "dashboard/delete.html"

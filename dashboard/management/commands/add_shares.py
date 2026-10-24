@@ -1,15 +1,14 @@
 from django.core.management.base import BaseCommand
-from tinkoff.invest import Client
 
-from config.settings import TINKOFF_TOKEN
 from dashboard.models import Share
+from dashboard.services.tinkoff import tinkoff_client
 
 
 class Command(BaseCommand):
     help = "Add shares to DB"
 
     def handle(self, *args, **options):
-        with Client(TINKOFF_TOKEN) as client:
+        with tinkoff_client() as client:
             shares = client.instruments.shares()
             for share in shares.instruments:
                 Share.objects.update_or_create(
@@ -22,3 +21,4 @@ class Command(BaseCommand):
                         uid=share.uid,
                     ),
                 )
+        self.stdout.write(f"Loaded {len(shares.instruments)} shares")

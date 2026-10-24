@@ -1,34 +1,45 @@
+import logging
 from datetime import timedelta
 
 from plotly.graph_objs import Scatter
 from plotly.offline import plot
-from tinkoff.invest import CandleInterval, Client
+from tinkoff.invest import CandleInterval
 from tinkoff.invest.utils import now, quotation_to_decimal
 
-from config.settings import TINKOFF_TOKEN, logger
+from .tinkoff import tinkoff_client
+
+logger = logging.getLogger("main")
+
+HISTORY_DAYS = 180
+
+
+def get_close_prices(share):
+    """Daily close prices for the last HISTORY_DAYS days: ([dates], [prices])."""
+    dates, prices = [], []
+    with tinkoff_client() as client:
+        for candle in client.get_all_candles(
+            figi=share.figi,
+            from_=now() - timedelta(days=HISTORY_DAYS),
+            interval=CandleInterval.CANDLE_INTERVAL_DAY,
+        ):
+            dates.append(candle.time.date())
+            prices.append(float(quotation_to_decimal(candle.close)))
+    return dates, prices
 
 
 def get_graph(share):
     """Return a Plotly chart (HTML div) of daily close prices, or None on API errors."""
     try:
-        with Client(TINKOFF_TOKEN) as client:
-            x_data, y_data = [], []
-            for candle in client.get_all_candles(
-                figi=share.figi,
-                from_=now() - timedelta(days=180),
-                interval=CandleInterval.CANDLE_INTERVAL_DAY,
-            ):
-                x_data.append(candle.time.date())
-                y_data.append(float(quotation_to_decimal(candle.close)))
+        dates, prices = get_close_prices(share)
     except Exception as e:
         logger.error(f"Failed to get candles for share with id {share.id}: {e}")
         return None
 
-    plot_div = plot(
+    return plot(
         [
             Scatter(
-                x=x_data,
-                y=y_data,
+                x=dates,
+                y=prices,
                 mode="lines",
                 name=share.ticker,
                 opacity=0.8,
@@ -39,4 +50,3 @@ def get_graph(share):
         include_plotlyjs="cdn",
         config={"displaylogo": False},
     )
-    return plot_div

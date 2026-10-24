@@ -56,7 +56,7 @@ class DashboardTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_share_detail_invalid(self):
-        response = self.client.get("/api/v1/shares/2/")
+        response = self.client.get(f"/api/v1/shares/{self.apple_share.id + 1}/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_share_update(self):
@@ -122,5 +122,49 @@ class DashboardTests(APITestCase):
         self.assertEqual(len(response.data["results"]), 0)
 
     def test_share_delete_invalid(self):
-        response = self.client.delete("/api/v1/shares/3/")
+        response = self.client.delete(f"/api/v1/shares/{self.apple_share.id + 1}/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class ShareHtmlTests(APITestCase):
+    """HTML pages: ФТ-3, ФТ-6, ФТ-17..ФТ-20."""
+
+    form = {
+        "figi": "FIGI1",
+        "isin": "ISIN1",
+        "name": "Company",
+        "ticker": "CMP",
+        "currency": "rub",
+        "uid": "",
+    }
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user("u@test.ru", "u@test.ru", "pw")
+
+    def test_empty_list(self):
+        response = self.client.get(reverse("dashboard:index"))
+        self.assertContains(response, "Акций еще нет")
+        self.assertNotContains(response, "Добавить")
+
+    def test_guest_is_redirected_from_create(self):
+        response = self.client.post(reverse("dashboard:create"), self.form)
+        self.assertRedirects(response, reverse("dashboard:index"))
+        self.assertFalse(Share.objects.exists())
+
+    def test_user_can_create_update_delete(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse("dashboard:create"), self.form)
+        share = Share.objects.get()
+        self.assertIsNone(share.uid)
+
+        self.client.post(
+            reverse("dashboard:update", args=[share.id]), {**self.form, "name": "New"}
+        )
+        share.refresh_from_db()
+        self.assertEqual(share.name, "New")
+
+        response = self.client.get(reverse("dashboard:index"))
+        self.assertContains(response, "Редактировать")
+
+        self.client.post(reverse("dashboard:delete", args=[share.id]))
+        self.assertFalse(Share.objects.exists())
