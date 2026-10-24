@@ -1,13 +1,18 @@
 import logging
+import os
+import secrets
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
-SECRET_KEY = ""
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY") or secrets.token_urlsafe(50)
 
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "false").lower() in {"true", "1", "yes"}
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 INSTALLED_APPS = [
@@ -89,17 +94,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 DATABASES = {
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "investing",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "localhost",
-        "PORT": "5432",
+        "NAME": os.environ.get("POSTGRES_DB", "investing"),
+        "USER": os.environ.get("POSTGRES_USER", "postgres"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "postgres"),
+        "HOST": os.environ.get("DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("POSTGRES_PORT", "5433"),
     }
 }
 
@@ -131,14 +132,21 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-TINKOFF_TOKEN = ""
+TINKOFF_TOKEN = os.environ.get("TINKOFF_TOKEN", "")
+TINKOFF_API_BASE_URL = os.environ.get(
+    "TINKOFF_API_BASE_URL",
+    "https://invest-public-api.tinkoff.ru/rest/tinkoff.public.invest.api.contract.v1",
+)
 
 """Celery Configuration Options"""
 CELERY_TIMEZONE = "Europe/Moscow"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
 # CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672'
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = os.environ.get(
+    "CELERY_BROKER_URL",
+    f"redis://127.0.0.1:{os.environ.get('REDIS_PORT', '6380')}/0",
+)
 
 """Debug Celery"""
 CELERY_TASK_ALWAYS_EAGER = False

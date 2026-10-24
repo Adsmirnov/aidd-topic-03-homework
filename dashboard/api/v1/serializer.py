@@ -10,6 +10,7 @@ class ShareSerializer(serializers.ModelSerializer):
             "id",
             "figi",
             "isin",
+            "uid",
             "name",
             "ticker",
             "currency",

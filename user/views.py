@@ -15,9 +15,15 @@ class AuthView(View):
     @staticmethod
     def post(request):
         form = AuthForm(request.POST)
-        user = authenticate(
-            request, username=form.data["email"].lower(), password=form.data["password"]
-        )
+        if not form.is_valid():
+            return render(
+                request,
+                "user/auth.html",
+                {"form": form, "error": "Введите корректные email и пароль."},
+            )
+
+        email = form.cleaned_data["email"].strip().lower()
+        user = authenticate(request, username=email, password=form.cleaned_data["password"])
 
         if user is not None:
             login(request, user)
@@ -51,7 +57,7 @@ class RegistrationView(View):
             return render(
                 request,
                 "user/registration.html",
-                {"form": form, "error": form.errors["__all__"].data[0].message},
+                {"form": form, "error": form.errors.as_text()},
             )
 
 

@@ -6,23 +6,13 @@ from config.settings import logger
 
 @app.task
 def update_last_price():
-    shares = Share.objects.all()
+    shares = Share.objects.all().iterator()
 
     for share in shares:
         try:
-            [last_price, detetime] = get_last_data(share)
-
-            try:
-                if share.last_price > last_price:
-                    is_trend_high = False
-                else:
-                    is_trend_high = True
-            except Exception as e:
-                logger.error(e)
-                is_trend_high = True
-
-            Share.objects.filter(id=share.id).update(
-                last_price=last_price, is_trend_high=is_trend_high
-            )
-        except Exception as e:
-            logger.error(e)
+            last_price, _ = get_last_data(share)
+            share.is_trend_high = share.last_price is None or last_price >= share.last_price
+            share.last_price = last_price
+            share.save(update_fields=("last_price", "is_trend_high", "updated_at"))
+        except Exception:
+            logger.exception("Failed to update price for share %s", share.pk)

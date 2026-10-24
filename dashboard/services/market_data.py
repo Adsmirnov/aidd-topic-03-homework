@@ -1,11 +1,14 @@
-from tinkoff.invest import Client
+from datetime import datetime
 
-from config.settings import TINKOFF_TOKEN, logger
+from .tinkoff_api import post, quotation_to_float
 
 
 def get_last_data(share):
-    with Client(TINKOFF_TOKEN) as client:
-        resp = client.market_data.get_last_prices(figi=[share.figi])
-        resp = resp.last_prices.pop()
-        logger.info(f"Get last data for share with id {share.id}")
-        return [resp.price.units, resp.time]
+    response = post("MarketDataService/GetLastPrices", {"instrumentId": [share.figi]})
+    last_prices = response.get("lastPrices", [])
+    if not last_prices:
+        raise ValueError(f"No last price returned for FIGI {share.figi}")
+
+    last_price = last_prices[-1]
+    timestamp = datetime.fromisoformat(last_price["time"].replace("Z", "+00:00"))
+    return quotation_to_float(last_price["price"]), timestamp

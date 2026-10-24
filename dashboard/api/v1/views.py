@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from dashboard.models import Share
 
@@ -16,7 +17,8 @@ class ShareFilter(filters.FilterSet):
 class ShareViewSet(viewsets.ModelViewSet):
     serializer_class = ShareSerializer
     queryset = Share.objects.all()
+    permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (OrderingFilter, filters.DjangoFilterBackend, SearchFilter)
     filterset_class = ShareFilter
     ordering_fields = ["name", "ticker"]
-    search_fields = ["$name"]
+    search_fields = ["name"]
