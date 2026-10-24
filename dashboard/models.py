@@ -155,3 +155,21 @@ class PortfolioTransaction(models.Model):
             models.CheckConstraint(condition=models.Q(unit_price__gt=0), name="portfolio_transaction_positive_price"),
         ]
         ordering = ("-created_at",)
+
+
+class PriceHistory(models.Model):
+    share = models.ForeignKey(
+        Share, on_delete=models.CASCADE, related_name="price_history"
+    )
+    price = models.DecimalField(max_digits=20, decimal_places=8)
+    observed_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("share", "observed_at"), name="uniq_share_price_observation"
+            ),
+            models.CheckConstraint(condition=models.Q(price__gt=0), name="price_history_positive_price"),
+        ]
+        ordering = ("observed_at",)

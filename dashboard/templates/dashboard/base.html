@@ -34,6 +34,7 @@
             {% if user.is_authenticated %}
                 <li><a href="{% url 'dashboard:monitoring:index' %}" class="nav-link px-2 link-secondary">Мониторинг</a></li>
                 <li><a href="{% url 'dashboard:portfolios:list' %}" class="nav-link px-2 link-secondary">Портфели</a></li>
+                <li><a href="{% url 'dashboard:history:index' %}" class="nav-link px-2 link-secondary">История цен</a></li>
             {% endif %}
         </ul>
 

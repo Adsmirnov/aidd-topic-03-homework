@@ -62,3 +62,25 @@ class PortfolioTransactionForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["share"].queryset = Share.objects.order_by("name")
+
+
+class PriceHistoryFilterForm(forms.Form):
+    share = forms.ModelChoiceField(queryset=Share.objects.none(), required=False)
+    start_date = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+    end_date = forms.DateField(
+        required=False, widget=forms.DateInput(attrs={"type": "date"})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["share"].queryset = Share.objects.order_by("name")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get("start_date")
+        end_date = cleaned_data.get("end_date")
+        if start_date and end_date and start_date > end_date:
+            raise forms.ValidationError("Начало периода должно быть не позже его конца.")
+        return cleaned_data
