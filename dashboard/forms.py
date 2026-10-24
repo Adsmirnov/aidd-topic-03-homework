@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import PriceAlert, Share, Watchlist
+from .models import Portfolio, PortfolioTransaction, PriceAlert, Share, Watchlist
 
 
 class ShareModelForm(forms.ModelForm):
@@ -45,3 +45,20 @@ class PriceAlertForm(forms.Form):
         decimal_places=8,
         min_value=0.00000001,
     )
+
+
+class PortfolioForm(forms.ModelForm):
+    class Meta:
+        model = Portfolio
+        fields = ("name",)
+
+
+class PortfolioTransactionForm(forms.Form):
+    share = forms.ModelChoiceField(queryset=Share.objects.none())
+    side = forms.ChoiceField(choices=PortfolioTransaction.Side.choices)
+    quantity = forms.DecimalField(max_digits=20, decimal_places=8, min_value=0.00000001)
+    unit_price = forms.DecimalField(max_digits=20, decimal_places=8, min_value=0.00000001)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["share"].queryset = Share.objects.order_by("name")

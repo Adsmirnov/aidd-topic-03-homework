@@ -240,3 +240,9 @@ Django ORM работает с PostgreSQL, указанным в `DATABASES` в 
 Реализованы `Watchlist`, `WatchlistEntry`, `PriceAlert` и `AlertNotification` в `dashboard/models.py`, миграция `dashboard/migrations/0008_pricealert_alertnotification_watchlist_and_more.py`, REST-интеграционно независимый evaluator в `dashboard/services/alerts.py` и owner-scoped HTML-раздел по адресу `/monitoring/`. После обновления котировки Celery вызывает evaluator; сработавший alert деактивируется, а уведомление создаётся только один раз. Уникальные ограничения защищают от повторного состава списка и повторных уведомлений на уровне БД.
 
 Миграция применена к PostgreSQL. Пять тестов в `dashboard/test_monitoring.py` проверяют требование входа, создание списка/акции/порога, изоляцию владельцев, идемпотентность состава списка и единственное уведомление при повторной обработке цены. Полный набор из 30 тестов прошёл. Live-срабатывание на котировке Tinkoff пока не проверено: в окружении нет `.env` и токена.
+
+### Реализация и проверки: виртуальный портфель
+
+Добавлены модели `Portfolio`, `PortfolioPosition` и `PortfolioTransaction`, ограничивающая уникальность позиция на акцию в портфеле и миграция `dashboard/migrations/0009_portfolio_portfolioposition_portfoliotransaction_and_more.py`. Операции проходят через атомарный `dashboard/services/portfolio.py`: покупка пересчитывает среднюю цену по количеству, продажа сохраняет реализованный P/L и отклоняется при превышении остатка. Owner-scoped страница `/portfolios/` показывает позиции, стоимость, нереализованный P/L и историю.
+
+Миграция применена. Четыре теста в `dashboard/test_portfolio.py` проверяют усреднение, прибыль от продажи, запрет oversell, изоляцию владельца и отображение расчётов. Полный набор исходных, мониторинговых и портфельных тестов: 34 теста, успешно.

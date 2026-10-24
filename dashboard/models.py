@@ -91,3 +91,67 @@ class AlertNotification(models.Model):
 
     class Meta:
         ordering = ("-created_at",)
+
+
+class Portfolio(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="portfolios"
+    )
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("owner", "name"), name="uniq_portfolio_owner_name")
+        ]
+        ordering = ("name",)
+
+    def __str__(self):
+        return self.name
+
+
+class PortfolioPosition(models.Model):
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name="positions"
+    )
+    share = models.ForeignKey(
+        Share, on_delete=models.PROTECT, related_name="portfolio_positions"
+    )
+    quantity = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    average_price = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("portfolio", "share"), name="uniq_portfolio_share"
+            ),
+            models.CheckConstraint(condition=models.Q(quantity__gte=0), name="portfolio_position_nonnegative"),
+        ]
+        ordering = ("share__name",)
+
+
+class PortfolioTransaction(models.Model):
+    class Side(models.TextChoices):
+        BUY = "buy", "Покупка"
+        SELL = "sell", "Продажа"
+
+    portfolio = models.ForeignKey(
+        Portfolio, on_delete=models.CASCADE, related_name="transactions"
+    )
+    share = models.ForeignKey(
+        Share, on_delete=models.PROTECT, related_name="portfolio_transactions"
+    )
+    side = models.CharField(max_length=4, choices=Side.choices)
+    quantity = models.DecimalField(max_digits=20, decimal_places=8)
+    unit_price = models.DecimalField(max_digits=20, decimal_places=8)
+    total_value = models.DecimalField(max_digits=20, decimal_places=8)
+    realized_pnl = models.DecimalField(max_digits=20, decimal_places=8, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(quantity__gt=0), name="portfolio_transaction_positive_quantity"),
+            models.CheckConstraint(condition=models.Q(unit_price__gt=0), name="portfolio_transaction_positive_price"),
+        ]
+        ordering = ("-created_at",)
