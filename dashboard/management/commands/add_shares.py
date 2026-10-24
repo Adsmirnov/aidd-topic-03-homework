@@ -12,13 +12,13 @@ class Command(BaseCommand):
         with Client(TINKOFF_TOKEN) as client:
             shares = client.instruments.shares()
             for share in shares.instruments:
-                Share.objects.get_or_create(
+                Share.objects.update_or_create(
                     figi=share.figi,
-                    name=share.name,
-                    isin=share.isin,
-                    ticker=share.ticker,
-                    currency=share.currency,
-                    uid=share.uid,
+                    defaults=dict(
+                        name=share.name,
+                        isin=share.isin,
+                        ticker=share.ticker,
+                        currency=share.currency,
+                        uid=share.uid,
+                    ),
                 )
-
-

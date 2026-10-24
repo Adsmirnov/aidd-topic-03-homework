@@ -10,9 +10,12 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 app.autodiscover_tasks()
 
+# Interval of the price refresh, seconds (all prices are fetched in one request)
+PRICE_UPDATE_INTERVAL = float(os.getenv("PRICE_UPDATE_INTERVAL", "10"))
+
 app.conf.beat_schedule = {
-    "add-every-5-min": {
+    "update-last-prices": {
         "task": "dashboard.tasks.update_last_price",
-        "schedule": 10.0,
+        "schedule": PRICE_UPDATE_INTERVAL,
     },
 }

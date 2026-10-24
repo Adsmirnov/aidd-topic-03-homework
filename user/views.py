@@ -15,9 +15,13 @@ class AuthView(View):
     @staticmethod
     def post(request):
         form = AuthForm(request.POST)
-        user = authenticate(
-            request, username=form.data["email"].lower(), password=form.data["password"]
-        )
+        user = None
+        if form.is_valid():
+            user = authenticate(
+                request,
+                username=form.cleaned_data["email"].lower(),
+                password=form.cleaned_data["password"],
+            )
 
         if user is not None:
             login(request, user)
@@ -48,10 +52,11 @@ class RegistrationView(View):
             login(request, user)
             return redirect("dashboard:index")
         else:
+            errors = [error for errors in form.errors.values() for error in errors]
             return render(
                 request,
                 "user/registration.html",
-                {"form": form, "error": form.errors["__all__"].data[0].message},
+                {"form": form, "error": " ".join(errors)},
             )
 
 
