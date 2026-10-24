@@ -20,6 +20,7 @@
             <li><a href="{% url 'investments:watchlists' %}" class="nav-link px-2">Наблюдение</a></li>
             <li><a href="{% url 'investments:notifications' %}" class="nav-link px-2">Уведомления{% if unread_notifications %} <span class="badge bg-danger">{{ unread_notifications }}</span>{% endif %}</a></li>
             <li><a href="{% url 'investments:portfolios' %}" class="nav-link px-2">Портфели</a></li>
+            <li><a href="{% url 'investments:strategies' %}" class="nav-link px-2">Стратегии</a></li>
             {% endif %}
         </ul>
 

@@ -6,6 +6,8 @@ from investments.models import (
     PortfolioOperation,
     PriceAlert,
     SharePrice,
+    Strategy,
+    StrategyTrade,
     Watchlist,
 )
 
@@ -41,3 +43,14 @@ class PortfolioOperationInline(admin.TabularInline):
 class PortfolioAdmin(admin.ModelAdmin):
     list_display = ("name", "user", "created_at")
     inlines = [PortfolioOperationInline]
+
+
+class StrategyTradeInline(admin.TabularInline):
+    model = StrategyTrade
+    extra = 0
+
+
+@admin.register(Strategy)
+class StrategyAdmin(admin.ModelAdmin):
+    list_display = ("name", "user", "share", "buy_price", "sell_price", "stop_price", "is_active")
+    inlines = [StrategyTradeInline]

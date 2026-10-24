@@ -1,0 +1,71 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>{{ strategy.name }}</title>{% endblock %}
+
+{% block content %}
+<p><a href="{% url 'investments:strategies' %}">← все стратегии</a></p>
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <h4 class="me-3 mb-0">{{ strategy.name }} — {{ strategy.share.ticker }}</h4>
+    {% if strategy.is_active %}<span class="badge bg-success">активна</span>{% else %}<span class="badge bg-secondary">выключена</span>{% endif %}
+    {% if holding %}<span class="badge bg-info text-dark">позиция открыта</span>{% endif %}
+    <form method="post" action="{% url 'investments:strategy_toggle' strategy.pk %}">
+        {% csrf_token %}<button class="btn btn-sm btn-outline-secondary">{% if strategy.is_active %}Выключить{% else %}Включить{% endif %}</button>
+    </form>
+    <form method="post" action="{% url 'investments:strategy_delete' strategy.pk %}" onsubmit="return confirm('Удалить стратегию и её журнал?')">
+        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Удалить</button>
+    </form>
+</div>
+<p>Текущая цена {{ strategy.share.ticker }}: {{ strategy.share.last_price|default_if_none:"нет данных" }} {{ strategy.share.currency }}</p>
+
+<h5>Эффективность (журнал виртуальных сделок)</h5>
+{% include "investments/_performance.html" %}
+
+<h5>Журнал сделок</h5>
+<table class="table table-sm table-striped">
+    <thead><tr><th>Время</th><th>Сделка</th><th>Кол-во</th><th>Цена</th><th>Причина</th></tr></thead>
+    {% for trade in trades %}
+    <tr><td>{{ trade.executed_at|date:"d.m.Y H:i:s" }}</td><td>{{ trade.get_side_display }}</td><td>{{ trade.quantity }}</td><td>{{ trade.price|floatformat:"-4" }}</td><td>{{ trade.reason }}</td></tr>
+    {% empty %}
+    <tr><td colspan="5">Сделок пока нет: стратегия ждёт, когда цена дойдёт до уровней.</td></tr>
+    {% endfor %}
+</table>
+
+<h5 class="mt-4">Бэктест на сохранённой истории цен</h5>
+<form method="get" class="row g-2 align-items-end mb-3">
+    <input type="hidden" name="backtest" value="1">
+    <div class="col-auto">
+        <select name="period" class="form-select">
+            {% for value, label in period_form.fields.period.choices %}<option value="{{ value }}" {% if period_form.period.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-auto"><input type="date" name="date_from" class="form-control" value="{{ period_form.date_from.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input type="date" name="date_to" class="form-control" value="{{ period_form.date_to.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><button class="btn btn-outline-primary">Прогнать</button></div>
+    {% if period_form.errors %}<div class="col-12 text-danger">{{ period_form.non_field_errors }}</div>{% endif %}
+</form>
+
+{% if backtest %}
+    {% if backtest.prices_count %}
+        <p>Цен в периоде: {{ backtest.prices_count }}. Результат бэктеста не записывается в журнал.</p>
+        {% include "investments/_performance.html" with performance=backtest.performance %}
+        <p>Для сравнения, «купить в начале и держать»: <b>{{ backtest.buy_and_hold|floatformat:2|default:"—" }}%</b></p>
+        {{ backtest.chart|safe }}
+        <table class="table table-sm">
+            <thead><tr><th>Время</th><th>Сделка</th><th>Цена</th><th>Причина</th></tr></thead>
+            {% for trade in backtest.trades %}
+            <tr><td>{{ trade.executed_at|date:"d.m.Y H:i" }}</td><td>{% if trade.side == "buy" %}Покупка{% else %}Продажа{% endif %}</td><td>{{ trade.price|floatformat:"-4" }}</td><td>{{ trade.reason }}</td></tr>
+            {% empty %}
+            <tr><td colspan="4">За период условия ни разу не выполнились.</td></tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>За выбранный период сохранённых цен нет.</p>
+    {% endif %}
+{% endif %}
+
+<h5 class="mt-4">Параметры</h5>
+<form method="post">
+    {% include "investments/_strategy_form.html" with submit_label="Сохранить" %}
+</form>
+{% endblock %}

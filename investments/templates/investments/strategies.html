@@ -1,0 +1,30 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>Стратегии</title>{% endblock %}
+
+{% block content %}
+<h4>Симулятор стратегий</h4>
+<p class="text-muted">Стратегия покупает заданное количество, когда цена опускается до уровня покупки, и продаёт всю позицию на уровне продажи или стоп-лоссе. Все сделки виртуальные.</p>
+
+<table class="table table-sm">
+    <thead><tr><th>Стратегия</th><th>Акция</th><th>Правило</th><th>Статус</th><th>Сделок</th><th>Итого П/У</th><th>Доходность</th></tr></thead>
+    {% for strategy, performance in rows %}
+    <tr>
+        <td><a href="{% url 'investments:strategy' strategy.pk %}">{{ strategy.name }}</a></td>
+        <td>{{ strategy.share.ticker }}</td>
+        <td>купить ≤ {{ strategy.buy_price|floatformat:"-4" }}, продать ≥ {{ strategy.sell_price|floatformat:"-4" }}{% if strategy.stop_price %}, стоп ≤ {{ strategy.stop_price|floatformat:"-4" }}{% endif %}</td>
+        <td>{% if strategy.is_active %}<span class="badge bg-success">активна</span>{% else %}<span class="badge bg-secondary">выключена</span>{% endif %}</td>
+        <td>{{ performance.trades }}</td>
+        <td>{{ performance.total|floatformat:2 }}</td>
+        <td>{% if performance.return_percent is None %}—{% else %}{{ performance.return_percent|floatformat:2 }}%{% endif %}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Стратегий пока нет.</td></tr>
+    {% endfor %}
+</table>
+
+<h5 class="mt-4">Новая стратегия</h5>
+<form method="post">
+    {% include "investments/_strategy_form.html" with submit_label="Создать" %}
+</form>
+{% endblock %}

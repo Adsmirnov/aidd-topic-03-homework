@@ -1,0 +1,9 @@
+<table class="table table-sm w-auto">
+    <tr><th>Сделок</th><td>{{ performance.trades }}</td></tr>
+    <tr><th>Закрытых циклов «покупка → продажа»</th><td>{{ performance.rounds }}</td></tr>
+    <tr><th>Прибыльных циклов</th><td>{{ performance.winning_rounds }}{% if performance.win_rate is not None %} ({{ performance.win_rate|floatformat:0 }}%){% endif %}</td></tr>
+    <tr><th>Реализованная прибыль/убыток</th><td>{{ performance.realized|floatformat:2 }}</td></tr>
+    <tr><th>Нереализованная (открытая позиция)</th><td>{{ performance.unrealized|floatformat:2 }}</td></tr>
+    <tr><th>Итого</th><td class="{% if performance.total > 0 %}text-success{% elif performance.total < 0 %}text-danger{% endif %}"><b>{{ performance.total|floatformat:2 }}</b></td></tr>
+    <tr><th>Доходность на задействованный капитал</th><td>{% if performance.return_percent is None %}—{% else %}{{ performance.return_percent|floatformat:2 }}%{% endif %}</td></tr>
+</table>

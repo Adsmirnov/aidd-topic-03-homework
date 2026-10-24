@@ -3,7 +3,7 @@ from decimal import Decimal
 from django import forms
 
 from dashboard.models import Share
-from investments.models import PortfolioOperation, PriceAlert
+from investments.models import PortfolioOperation, PriceAlert, Strategy
 from investments.services.history import DEFAULT_PERIOD, PERIODS, to_decimal
 from investments.services.portfolio import held_quantity
 
@@ -100,3 +100,25 @@ class OperationForm(forms.Form):
             portfolio=self.portfolio, share=data["ticker"], side=data["side"],
             quantity=data["quantity"], price=data["price"], comment=data["comment"],
         )
+
+
+class StrategyForm(forms.ModelForm):
+    ticker = forms.CharField(label="Тикер", max_length=10)
+
+    class Meta:
+        model = Strategy
+        fields = ["name", "buy_price", "sell_price", "stop_price", "quantity", "is_active"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields["ticker"].initial = self.instance.share.ticker
+
+    def clean_ticker(self):
+        ticker = self.cleaned_data["ticker"].strip()
+        share = Share.objects.filter(ticker__iexact=ticker).first()
+        if share is None:
+            raise forms.ValidationError(f"Акции с тикером {ticker} нет в справочнике")
+        # Set before model validation so Strategy.clean() sees a complete object
+        self.instance.share = share
+        return share

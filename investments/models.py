@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
@@ -163,3 +164,66 @@ class PortfolioOperation(models.Model):
     @property
     def amount(self):
         return self.price * self.quantity
+
+
+class Strategy(models.Model):
+    """Правило покупки/продажи одной акции для виртуальной торговли"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="strategies"
+    )
+    name = models.CharField(max_length=100, verbose_name="Название")
+    share = models.ForeignKey(Share, on_delete=models.CASCADE, related_name="+", verbose_name="Акция")
+    buy_price = models.DecimalField(
+        **PRICE_DIGITS, validators=POSITIVE, verbose_name="Покупать, если цена ≤"
+    )
+    sell_price = models.DecimalField(
+        **PRICE_DIGITS, validators=POSITIVE, verbose_name="Продавать, если цена ≥"
+    )
+    stop_price = models.DecimalField(
+        **PRICE_DIGITS, validators=POSITIVE, null=True, blank=True,
+        verbose_name="Стоп-лосс: продавать, если цена ≤",
+    )
+    quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)], verbose_name="Количество в сделке"
+    )
+    is_active = models.BooleanField(default=True, verbose_name="Активна")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Стратегия"
+        verbose_name_plural = "Стратегии"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        if self.buy_price is not None and self.sell_price is not None:
+            if self.buy_price >= self.sell_price:
+                raise ValidationError("Уровень покупки должен быть ниже уровня продажи")
+            if self.stop_price is not None and self.stop_price >= self.buy_price:
+                raise ValidationError("Стоп-лосс должен быть ниже уровня покупки")
+
+
+class StrategyTrade(models.Model):
+    """Виртуальная сделка стратегии (журнал)"""
+
+    strategy = models.ForeignKey(Strategy, on_delete=models.CASCADE, related_name="trades")
+    side = models.CharField(max_length=4, choices=PortfolioOperation.SIDES)
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(**PRICE_DIGITS)
+    executed_at = models.DateTimeField()
+    reason = models.CharField(max_length=100)
+
+    class Meta:
+        ordering = ["executed_at", "id"]
+        constraints = [
+            # At most one trade per strategy per price update (a retried task does not repeat it)
+            models.UniqueConstraint(
+                fields=["strategy", "executed_at"], name="one_trade_per_price_update"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.strategy}: {self.get_side_display()} {self.quantity} по {self.price}"

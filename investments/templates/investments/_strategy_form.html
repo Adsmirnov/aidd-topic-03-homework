@@ -1,0 +1,15 @@
+{% csrf_token %}
+<div class="row g-2">
+    <div class="col-md-3"><label class="form-label">Название</label><input name="name" class="form-control" required maxlength="100" value="{{ form.name.value|default_if_none:'' }}"></div>
+    <div class="col-md-2"><label class="form-label">Тикер</label><input name="ticker" class="form-control" required maxlength="10" value="{{ form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-md-2"><label class="form-label">Покупать, если цена ≤</label><input name="buy_price" type="number" step="any" min="0.000001" class="form-control" required value="{{ form.buy_price.value|default_if_none:'' }}"></div>
+    <div class="col-md-2"><label class="form-label">Продавать, если цена ≥</label><input name="sell_price" type="number" step="any" min="0.000001" class="form-control" required value="{{ form.sell_price.value|default_if_none:'' }}"></div>
+    <div class="col-md-2"><label class="form-label">Стоп-лосс ≤ (необяз.)</label><input name="stop_price" type="number" step="any" min="0.000001" class="form-control" value="{{ form.stop_price.value|default_if_none:'' }}"></div>
+    <div class="col-md-1"><label class="form-label">Кол-во</label><input name="quantity" type="number" min="1" class="form-control" required value="{{ form.quantity.value|default_if_none:'1' }}"></div>
+    <div class="col-12 form-check ms-2">
+        <input type="checkbox" name="is_active" id="is_active" class="form-check-input" {% if form.is_active.value %}checked{% endif %}>
+        <label for="is_active" class="form-check-label">Активна (применяется к новым ценам автоматически)</label>
+    </div>
+    <div class="col-12"><button class="btn btn-primary">{{ submit_label }}</button></div>
+</div>
+{% if form.errors %}<div class="text-danger mt-2">{{ form.non_field_errors }}{% for f in form %}{% if f.errors %}{{ f.label }}: {{ f.errors }}{% endif %}{% endfor %}</div>{% endif %}
