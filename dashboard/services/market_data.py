@@ -1,6 +1,4 @@
-from datetime import datetime
-
-from .tinkoff_api import post, quotation_to_float
+from .tinkoff_api import parse_api_datetime, post, quotation_to_float
 
 
 def get_last_data(share):
@@ -10,5 +8,5 @@ def get_last_data(share):
         raise ValueError(f"No last price returned for FIGI {share.figi}")
 
     last_price = last_prices[-1]
-    timestamp = datetime.fromisoformat(last_price["time"].replace("Z", "+00:00"))
+    timestamp = parse_api_datetime(last_price["time"])
     return quotation_to_float(last_price["price"]), timestamp

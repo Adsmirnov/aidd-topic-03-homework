@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import requests
 
 from config.settings import TINKOFF_API_BASE_URL, TINKOFF_TOKEN
@@ -19,3 +21,7 @@ def post(endpoint, payload):
 
 def quotation_to_float(quotation):
     return float(quotation.get("units", 0)) + int(quotation.get("nano", 0)) / 1_000_000_000
+
+
+def parse_api_datetime(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
