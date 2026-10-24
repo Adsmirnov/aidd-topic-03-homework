@@ -28,7 +28,9 @@ class Trade:
 def decide(strategy, holding, price):
     """(side, reason) the strategy takes at `price`, or None. One position at a time."""
     if not holding:
-        if price <= strategy.buy_price:
+        # No buying at or below the stop-loss: it would be sold on the next update
+        above_stop = strategy.stop_price is None or price > strategy.stop_price
+        if price <= strategy.buy_price and above_stop:
             return BUY, REASON_BUY
         return None
     if strategy.stop_price is not None and price <= strategy.stop_price:

@@ -46,6 +46,16 @@ class EngineTests(TestCase):
         trades = simulate(self.strategy, prices(100, 95, 89))
         self.assertEqual([(t.side, t.reason) for t in trades], [("buy", REASON_BUY), ("sell", REASON_STOP)])
 
+    def test_no_buying_below_stop_loss(self):
+        """Found in manual testing: after a stop-loss the strategy bought and
+        stopped out again on every update while the price stayed below the stop."""
+        trades = simulate(self.strategy, prices(99, 85, 84, 86, 88, 95, 121))
+        self.assertEqual(
+            [(t.side, t.price, t.reason) for t in trades],
+            [("buy", 99, REASON_BUY), ("sell", 85, REASON_STOP),
+             ("buy", 95, REASON_BUY), ("sell", 121, REASON_SELL)],
+        )
+
     def test_performance(self):
         """НФТ-22."""
         trades = simulate(self.strategy, prices(99, 121, 98, 89, 100))
