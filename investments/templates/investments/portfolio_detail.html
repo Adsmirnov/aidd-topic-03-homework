@@ -1,0 +1,83 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>{{ portfolio.name }}</title>{% endblock %}
+
+{% block content %}
+<p><a href="{% url 'investments:portfolios' %}">← все портфели</a></p>
+
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+    <h4 class="me-3 mb-0">{{ portfolio.name }}</h4>
+    <form method="post" action="{% url 'investments:portfolio_rename' portfolio.pk %}" class="d-flex gap-1">
+        {% csrf_token %}
+        <input name="name" value="{{ portfolio.name }}" class="form-control form-control-sm" required maxlength="100">
+        <button class="btn btn-sm btn-outline-secondary">Переименовать</button>
+    </form>
+    <form method="post" action="{% url 'investments:portfolio_delete' portfolio.pk %}" onsubmit="return confirm('Удалить портфель со всеми операциями?')">
+        {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Удалить портфель</button>
+    </form>
+</div>
+
+<h5>Итого</h5>
+<table class="table table-sm w-auto">
+    <tr><th>Вложено (по средней цене)</th><td>{{ summary.invested|floatformat:2 }}</td></tr>
+    <tr><th>Текущая стоимость</th><td>{{ summary.market_value|floatformat:2 }}{% if summary.has_unpriced %} <span class="text-muted">(без позиций без цены)</span>{% endif %}</td></tr>
+    <tr><th>Нереализованная прибыль/убыток</th><td>{{ summary.unrealized|floatformat:2 }}</td></tr>
+    <tr><th>Реализованная прибыль/убыток</th><td>{{ summary.realized|floatformat:2 }}</td></tr>
+    <tr><th>Итого прибыль/убыток</th>
+        <td class="{% if summary.total > 0 %}text-success{% elif summary.total < 0 %}text-danger{% endif %}"><b>{{ summary.total|floatformat:2 }}</b></td></tr>
+</table>
+
+<h5>Позиции</h5>
+<table class="table table-sm">
+    <thead><tr><th>Тикер</th><th>Кол-во</th><th>Средняя цена</th><th>Вложено</th><th>Текущая цена</th><th>Стоимость</th><th>Нереализ. П/У</th><th>%</th><th>Реализ. П/У</th></tr></thead>
+    {% for p in summary.positions %}
+    <tr class="{% if not p.quantity %}text-muted{% endif %}">
+        <td><a href="{% url 'dashboard:detail' p.share.id %}">{{ p.share.ticker }}</a></td>
+        <td>{{ p.quantity }}</td>
+        <td>{{ p.avg_price|floatformat:4|default:"—" }}</td>
+        <td>{{ p.cost|floatformat:2 }}</td>
+        <td>{% if p.current_price is None %}нет цены{% else %}{{ p.current_price|floatformat:4 }}{% endif %}</td>
+        <td>{{ p.market_value|floatformat:2|default:"—" }}</td>
+        <td class="{% if p.unrealized > 0 %}text-success{% elif p.unrealized < 0 %}text-danger{% endif %}">{{ p.unrealized|floatformat:2|default:"—" }}</td>
+        <td>{{ p.unrealized_percent|floatformat:2|default:"—" }}</td>
+        <td>{{ p.realized|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9">Позиций нет.</td></tr>
+    {% endfor %}
+</table>
+
+<h5>Новая операция</h5>
+<form method="post" class="row g-2 mb-2">
+    {% csrf_token %}
+    <div class="col-auto">
+        <select name="side" class="form-select">
+            {% for value, label in form.fields.side.choices %}<option value="{{ value }}" {% if form.side.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер" required maxlength="10" value="{{ form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input name="quantity" type="number" min="1" class="form-control" placeholder="Количество" required value="{{ form.quantity.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input name="price" type="number" step="any" min="0.000001" class="form-control" placeholder="Цена (пусто — текущая)" value="{{ form.price.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input name="comment" class="form-control" placeholder="Комментарий" maxlength="255" value="{{ form.comment.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><button class="btn btn-primary">Провести</button></div>
+</form>
+{% if form.errors %}<div class="text-danger mb-3">{{ form.non_field_errors }}{% for f in form %}{{ f.errors }}{% endfor %}</div>{% endif %}
+
+<h5 class="mt-4">История операций</h5>
+<table class="table table-sm table-striped">
+    <thead><tr><th>Время</th><th>Операция</th><th>Тикер</th><th>Кол-во</th><th>Цена</th><th>Сумма</th><th>Комментарий</th></tr></thead>
+    {% for op in operations %}
+    <tr>
+        <td>{{ op.executed_at|date:"d.m.Y H:i:s" }}</td>
+        <td>{{ op.get_side_display }}</td>
+        <td>{{ op.share.ticker }}</td>
+        <td>{{ op.quantity }}</td>
+        <td>{{ op.price|floatformat:4 }}</td>
+        <td>{{ op.amount|floatformat:2 }}</td>
+        <td>{{ op.comment }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">Операций пока нет.</td></tr>
+    {% endfor %}
+</table>
+{% endblock %}

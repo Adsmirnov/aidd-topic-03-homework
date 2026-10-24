@@ -1,0 +1,28 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}<title>Портфели</title>{% endblock %}
+
+{% block content %}
+<h4>Виртуальные портфели</h4>
+
+<form method="post" class="row g-2 mb-4">
+    {% csrf_token %}
+    <div class="col-auto"><input name="name" class="form-control" placeholder="Название нового портфеля" required maxlength="100"></div>
+    <div class="col-auto"><button class="btn btn-primary">Создать</button></div>
+</form>
+
+<table class="table w-auto">
+    <thead><tr><th>Портфель</th><th>Вложено</th><th>Стоимость</th><th>Прибыль/убыток</th></tr></thead>
+    {% for portfolio, summary in portfolios %}
+    <tr>
+        <td><a href="{% url 'investments:portfolio' portfolio.pk %}">{{ portfolio.name }}</a></td>
+        <td>{{ summary.invested|floatformat:2 }}</td>
+        <td>{{ summary.market_value|floatformat:2 }}{% if summary.has_unpriced %}*{% endif %}</td>
+        <td class="{% if summary.total > 0 %}text-success{% elif summary.total < 0 %}text-danger{% endif %}">{{ summary.total|floatformat:2 }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4">Портфелей пока нет.</td></tr>
+    {% endfor %}
+</table>
+<p class="text-muted small">* есть позиции без известной текущей цены, они не входят в стоимость.</p>
+{% endblock %}

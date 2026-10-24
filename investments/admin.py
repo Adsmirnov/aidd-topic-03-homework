@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from investments.models import Notification, PriceAlert, SharePrice, Watchlist
+from investments.models import (
+    Notification,
+    Portfolio,
+    PortfolioOperation,
+    PriceAlert,
+    SharePrice,
+    Watchlist,
+)
 
 
 @admin.register(SharePrice)
@@ -23,3 +30,14 @@ class PriceAlertAdmin(admin.ModelAdmin):
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("message", "user", "triggered_at", "read_at")
+
+
+class PortfolioOperationInline(admin.TabularInline):
+    model = PortfolioOperation
+    extra = 0
+
+
+@admin.register(Portfolio)
+class PortfolioAdmin(admin.ModelAdmin):
+    list_display = ("name", "user", "created_at")
+    inlines = [PortfolioOperationInline]

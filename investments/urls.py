@@ -1,6 +1,6 @@
 from django.urls import path
 
-from investments.views import history, watchlists
+from investments.views import history, portfolios, watchlists
 
 app_name = "investments"
 
@@ -16,4 +16,8 @@ urlpatterns = [
     path("alerts/<int:pk>/rearm/", watchlists.alert_rearm, name="alert_rearm"),
     path("notifications/", watchlists.notification_list, name="notifications"),
     path("notifications/read/", watchlists.notifications_read, name="notifications_read"),
+    path("portfolios/", portfolios.portfolio_list, name="portfolios"),
+    path("portfolios/<int:pk>/", portfolios.portfolio_detail, name="portfolio"),
+    path("portfolios/<int:pk>/rename/", portfolios.portfolio_rename, name="portfolio_rename"),
+    path("portfolios/<int:pk>/delete/", portfolios.portfolio_delete, name="portfolio_delete"),
 ]

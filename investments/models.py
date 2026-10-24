@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 from dashboard.models import Share
 
@@ -116,3 +117,49 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.message
+
+
+class Portfolio(models.Model):
+    """Виртуальный инвестиционный портфель"""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="portfolios"
+    )
+    name = models.CharField(max_length=100, verbose_name="Название")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Портфель"
+        verbose_name_plural = "Портфели"
+        ordering = ["name", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class PortfolioOperation(models.Model):
+    """Смоделированная покупка или продажа акции в портфеле (журнал не редактируется)"""
+
+    BUY = "buy"
+    SELL = "sell"
+    SIDES = [(BUY, "Покупка"), (SELL, "Продажа")]
+
+    portfolio = models.ForeignKey(Portfolio, on_delete=models.CASCADE, related_name="operations")
+    share = models.ForeignKey(Share, on_delete=models.PROTECT, related_name="+")
+    side = models.CharField(max_length=4, choices=SIDES, verbose_name="Операция")
+    quantity = models.PositiveIntegerField(
+        validators=[MinValueValidator(1)], verbose_name="Количество"
+    )
+    price = models.DecimalField(**PRICE_DIGITS, validators=POSITIVE, verbose_name="Цена")
+    executed_at = models.DateTimeField(default=timezone.now, verbose_name="Время")
+    comment = models.CharField(max_length=255, blank=True, verbose_name="Комментарий")
+
+    class Meta:
+        ordering = ["executed_at", "id"]
+
+    def __str__(self):
+        return f"{self.get_side_display()} {self.share.ticker} × {self.quantity} по {self.price}"
+
+    @property
+    def amount(self):
+        return self.price * self.quantity
