@@ -28,3 +28,6 @@ celeryd.pid
 *.log
 .pytest_cache/
 app.logs
+
+# Public root CA for T-Invest API (not a secret, see certs/README.md)
+!certs/russian_trusted_root_ca.pem
