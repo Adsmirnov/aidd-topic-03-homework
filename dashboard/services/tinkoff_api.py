@@ -10,7 +10,7 @@ def post(endpoint, payload):
         raise RuntimeError("TINKOFF_TOKEN is not configured")
 
     response = requests.post(
-        f"{TINKOFF_API_BASE_URL}/{endpoint}",
+        f"{TINKOFF_API_BASE_URL.rstrip('.')}.{endpoint.lstrip('.')}",
         headers={"Authorization": f"Bearer {TINKOFF_TOKEN}"},
         json=payload,
         timeout=(5, 30),
