@@ -147,6 +147,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 TINKOFF_TOKEN = os.getenv("TINKOFF_TOKEN", "")
 # Current T-Invest API address; invest-public-api.tinkoff.ru is the legacy one
 TINKOFF_API_TARGET = os.getenv("TINKOFF_API_TARGET", "invest-public-api.tbank.ru:443")
+# T-Invest API uses a certificate of the Russian Trusted Root CA, which is not in the
+# roots bundled with gRPC. The root is given to gRPC of this process only (not to the OS);
+# TLS is still verified. The only gRPC client in the app is the T-Invest SDK.
+TINKOFF_CA_FILE = os.getenv("TINKOFF_CA_FILE", "certs/russian_trusted_root_ca.pem")
+if TINKOFF_CA_FILE:
+    os.environ.setdefault(
+        "GRPC_DEFAULT_SSL_ROOTS_FILE_PATH", str(BASE_DIR / TINKOFF_CA_FILE)
+    )
 
 """Celery Configuration Options"""
 CELERY_TIMEZONE = "Europe/Moscow"

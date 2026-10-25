@@ -7,7 +7,10 @@ class Share(models.Model):
     figi = models.CharField(max_length=255, unique=True)
     isin = models.CharField(max_length=255)
     name = models.CharField(max_length=255, verbose_name="Наименование компании")
-    ticker = models.CharField(max_length=10, unique=True, verbose_name="Тикер")
+    # Not unique: the same ticker trades on several exchanges (T is T-Technologies on
+    # MOEX and AT&T on SPB Exchange); FIGI identifies the instrument
+    ticker = models.CharField(max_length=10, db_index=True, verbose_name="Тикер")
+    class_code = models.CharField(max_length=20, blank=True, verbose_name="Площадка")
     currency = models.CharField(max_length=20, verbose_name="Валюта")
     # Optional for shares added by hand: several NULLs do not break uniqueness
     uid = models.CharField(max_length=255, unique=True, blank=True, null=True)

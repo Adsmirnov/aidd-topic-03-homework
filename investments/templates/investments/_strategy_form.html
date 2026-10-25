@@ -1,7 +1,7 @@
 {% csrf_token %}
 <div class="row g-2">
     <div class="col-md-3"><label class="form-label">Название</label><input name="name" class="form-control" required maxlength="100" value="{{ form.name.value|default_if_none:'' }}"></div>
-    <div class="col-md-2"><label class="form-label">Тикер</label><input name="ticker" class="form-control" required maxlength="10" value="{{ form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-md-2"><label class="form-label">Тикер или FIGI</label><input name="ticker" class="form-control" required maxlength="12" value="{{ form.ticker.value|default_if_none:'' }}"></div>
     <div class="col-md-2"><label class="form-label">Покупать, если цена ≤</label><input name="buy_price" type="number" step="any" min="0.000001" class="form-control" required value="{{ form.buy_price.value|default_if_none:'' }}"></div>
     <div class="col-md-2"><label class="form-label">Продавать, если цена ≥</label><input name="sell_price" type="number" step="any" min="0.000001" class="form-control" required value="{{ form.sell_price.value|default_if_none:'' }}"></div>
     <div class="col-md-2"><label class="form-label">Стоп-лосс ≤ (необяз.)</label><input name="stop_price" type="number" step="any" min="0.000001" class="form-control" value="{{ form.stop_price.value|default_if_none:'' }}"></div>

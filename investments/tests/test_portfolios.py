@@ -110,3 +110,28 @@ class PortfolioPageTests(TestCase):
         self.assertEqual(self.portfolio.name, "Новый")
         self.client.post(f"{self.url}delete/")
         self.assertFalse(Portfolio.objects.exists())
+
+
+class AmbiguousTickerTests(TestCase):
+    """Д-20: a ticker shared by two exchanges must be given as FIGI."""
+
+    def setUp(self):
+        self.client.force_login(make_user())
+        self.moex = make_share("T", last_price=3000)
+        self.moex.figi, self.moex.class_code = "TCS80A107UL4", "TQBR"
+        self.moex.save()
+        self.spb = make_share("T2", last_price=25)
+        self.spb.ticker, self.spb.figi, self.spb.class_code = "T", "BBG000BSJK37", "SPBXM"
+        self.spb.save()
+        self.client.post("/portfolios/", {"name": "Мой"})
+        self.url = f"/portfolios/{Portfolio.objects.get(name='Мой').pk}/"
+
+    def test_ambiguous_ticker_asks_for_figi(self):
+        response = self.client.post(self.url, {"side": "buy", "ticker": "T", "quantity": 1})
+        self.assertContains(response, "укажите FIGI", status_code=400)
+        self.assertContains(response, "BBG000BSJK37", status_code=400)
+
+    def test_figi_selects_the_share(self):
+        self.client.post(self.url, {"side": "buy", "ticker": "bbg000bsjk37", "quantity": 1})
+        op = PortfolioOperation.objects.get()
+        self.assertEqual((op.share, op.price), (self.spb, Decimal("25")))

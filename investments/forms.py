@@ -10,6 +10,26 @@ from investments.services.portfolio import held_quantity
 DATE_INPUT = forms.DateInput(attrs={"type": "date"})
 
 
+def ticker_field():
+    return forms.CharField(label="Тикер или FIGI", max_length=12)
+
+
+def find_share(code):
+    """Share by FIGI or ticker; a ticker that several exchanges share must be given as FIGI."""
+    code = code.strip()
+    shares = list(Share.objects.filter(figi__iexact=code)) or list(
+        Share.objects.filter(ticker__iexact=code)
+    )
+    if not shares:
+        raise forms.ValidationError(f"Акции с тикером или FIGI {code} нет в справочнике")
+    if len(shares) > 1:
+        options = "; ".join(f"{s.figi} — {s.name} ({s.class_code or 'площадка не указана'})" for s in shares)
+        raise forms.ValidationError(
+            f"Тикер {code} есть у нескольких бумаг, укажите FIGI: {options}"
+        )
+    return shares[0]
+
+
 class HistoryPeriodForm(forms.Form):
     period = forms.ChoiceField(
         label="Период",
@@ -33,17 +53,14 @@ class NameForm(forms.Form):
 
 
 class AddShareForm(forms.Form):
-    ticker = forms.CharField(label="Тикер", max_length=10)
+    ticker = ticker_field()
 
     def __init__(self, *args, watchlist=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.watchlist = watchlist
 
     def clean_ticker(self):
-        ticker = self.cleaned_data["ticker"].strip()
-        share = Share.objects.filter(ticker__iexact=ticker).first()
-        if share is None:
-            raise forms.ValidationError(f"Акции с тикером {ticker} нет в справочнике")
+        share = find_share(self.cleaned_data["ticker"])
         if self.watchlist.items.filter(share=share).exists():
             raise forms.ValidationError(f"{share.ticker} уже есть в списке")
         return share
@@ -57,7 +74,7 @@ class PriceAlertForm(forms.ModelForm):
 
 class OperationForm(forms.Form):
     side = forms.ChoiceField(label="Операция", choices=PortfolioOperation.SIDES)
-    ticker = forms.CharField(label="Тикер", max_length=10)
+    ticker = ticker_field()
     quantity = forms.IntegerField(label="Количество", min_value=1)
     price = forms.DecimalField(
         label="Цена", required=False, min_value=Decimal("0.000001"), max_digits=18,
@@ -70,10 +87,7 @@ class OperationForm(forms.Form):
         self.portfolio = portfolio
 
     def clean_ticker(self):
-        ticker = self.cleaned_data["ticker"].strip()
-        share = Share.objects.filter(ticker__iexact=ticker).first()
-        if share is None:
-            raise forms.ValidationError(f"Акции с тикером {ticker} нет в справочнике")
+        share = find_share(self.cleaned_data["ticker"])
         return share
 
     def clean(self):
@@ -103,7 +117,7 @@ class OperationForm(forms.Form):
 
 
 class StrategyForm(forms.ModelForm):
-    ticker = forms.CharField(label="Тикер", max_length=10)
+    ticker = ticker_field()
 
     class Meta:
         model = Strategy
@@ -112,13 +126,12 @@ class StrategyForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
-            self.fields["ticker"].initial = self.instance.share.ticker
+            share = self.instance.share
+            ambiguous = Share.objects.filter(ticker__iexact=share.ticker).count() > 1
+            self.fields["ticker"].initial = share.figi if ambiguous else share.ticker
 
     def clean_ticker(self):
-        ticker = self.cleaned_data["ticker"].strip()
-        share = Share.objects.filter(ticker__iexact=ticker).first()
-        if share is None:
-            raise forms.ValidationError(f"Акции с тикером {ticker} нет в справочнике")
+        share = find_share(self.cleaned_data["ticker"])
         # Set before model validation so Strategy.clean() sees a complete object
         self.instance.share = share
         return share

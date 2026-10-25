@@ -17,6 +17,7 @@ class Command(BaseCommand):
                         name=share.name,
                         isin=share.isin,
                         ticker=share.ticker,
+                        class_code=share.class_code,
                         currency=share.currency,
                         uid=share.uid,
                     ),

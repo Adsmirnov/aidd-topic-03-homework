@@ -83,6 +83,13 @@ class PriceUpdateTests(TestCase):
         share.refresh_from_db()
         self.assertTrue(share.is_trend_high)
 
+    def test_zero_price_means_no_price(self):
+        """Д-21, found with the real API: delisted shares come back with price 0."""
+        share = make_share()
+        self.run_task((share.figi, 0, 0))
+        share.refresh_from_db()
+        self.assertIsNone(share.last_price)
+
     def test_prices_are_requested_in_one_call(self):
         """Д-8: one request for all shares instead of one per share."""
         first = make_share()
@@ -94,14 +101,15 @@ class PriceUpdateTests(TestCase):
 
 
 class AddSharesTests(TestCase):
-    def instrument(self, name):
+    def instrument(self, name, figi="BBG000B9XRY4", ticker="AAPL", class_code="SPBXM"):
         return SimpleNamespace(
-            figi="BBG000B9XRY4",
+            figi=figi,
             name=name,
             isin="US0378331005",
-            ticker="AAPL",
+            ticker=ticker,
+            class_code=class_code,
             currency="usd",
-            uid="a9eb4238-eba9-488c-b102-b6140fd08e38",
+            uid=f"uid-{figi}",
         )
 
     def load(self, *instruments):
@@ -120,6 +128,17 @@ class AddSharesTests(TestCase):
         self.load(self.instrument("Apple Inc."))
         self.assertEqual(Share.objects.count(), 1)
         self.assertEqual(Share.objects.get().name, "Apple Inc.")
+
+    def test_same_ticker_on_two_exchanges(self):
+        """Д-20, found with the real API: T is T-Technologies (TQBR) and AT&T (SPBXM)."""
+        self.load(
+            self.instrument("Т-Технологии", figi="TCS80A107UL4", ticker="T", class_code="TQBR"),
+            self.instrument("AT&T", figi="BBG000BSJK37", ticker="T", class_code="SPBXM"),
+        )
+        self.assertEqual(
+            sorted(Share.objects.values_list("ticker", "class_code")),
+            [("T", "SPBXM"), ("T", "TQBR")],
+        )
 
 
 class ShareApiDefectTests(APITestCase):

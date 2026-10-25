@@ -16,6 +16,10 @@ def get_last_prices(figis):
             batch = figis[start : start + LAST_PRICES_BATCH_SIZE]
             resp = client.market_data.get_last_prices(figi=batch)
             for last_price in resp.last_prices:
-                prices[last_price.figi] = float(quotation_to_decimal(last_price.price))
+                price = float(quotation_to_decimal(last_price.price))
+                # Instruments without trades (e.g. delisted) come back with price 0
+                # and time 1970-01-01: that means "no price", not a price of zero
+                if price > 0:
+                    prices[last_price.figi] = price
     logger.info(f"Got last prices for {len(prices)} of {len(figis)} shares")
     return prices

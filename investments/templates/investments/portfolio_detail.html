@@ -55,7 +55,7 @@
             {% for value, label in form.fields.side.choices %}<option value="{{ value }}" {% if form.side.value == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
         </select>
     </div>
-    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер" required maxlength="10" value="{{ form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер или FIGI" required maxlength="12" value="{{ form.ticker.value|default_if_none:'' }}"></div>
     <div class="col-auto"><input name="quantity" type="number" min="1" class="form-control" placeholder="Количество" required value="{{ form.quantity.value|default_if_none:'' }}"></div>
     <div class="col-auto"><input name="price" type="number" step="any" min="0.000001" class="form-control" placeholder="Цена (пусто — текущая)" value="{{ form.price.value|default_if_none:'' }}"></div>
     <div class="col-auto"><input name="comment" class="form-control" placeholder="Комментарий" maxlength="255" value="{{ form.comment.value|default_if_none:'' }}"></div>

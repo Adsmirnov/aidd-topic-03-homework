@@ -19,7 +19,7 @@
 
 <form method="post" class="row g-2 mb-4">
     {% csrf_token %}
-    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер, например SBER" required maxlength="10" value="{{ share_form.ticker.value|default_if_none:'' }}"></div>
+    <div class="col-auto"><input name="ticker" class="form-control" placeholder="Тикер или FIGI, например SBER" required maxlength="12" value="{{ share_form.ticker.value|default_if_none:'' }}"></div>
     <div class="col-auto"><button class="btn btn-primary">Добавить акцию</button></div>
     <div class="col-12 text-danger">{{ share_form.ticker.errors }}</div>
 </form>
